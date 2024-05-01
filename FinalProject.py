@@ -3,8 +3,11 @@ import sqlite3
 from tkinter import Tk, messagebox, ttk
 
 ### Current Problems ###
-# Can't figure out how to properly close the main window when accessing
-# a role specific UI
+# UNCUSTOMIZED GUI
+# Role GUIs incomplete
+# Create a way to add users into their role tables
+
+
 # Purpose: Create the user database
 def createTables() -> None:
     conn = sqlite3.connect('Users.db')
@@ -14,6 +17,27 @@ def createTables() -> None:
     curs.execute('''CREATE TABLE IF NOT EXISTS Users
                 (UserID INTEGER PRIMARY KEY AUTOINCREMENT, Username TEXT, Password TEXT, Role TEXT)''')
 
+    curs.execute('''CREATE TABLE IF NOT EXISTS Courses
+                (CourseID INTEGER PRIMARY KEY AUTOINCREMENT, CourseName TEXT, StudentIDs INTEGER, FacultyIDs INTEGER,
+                FOREIGN KEY (StudentIDs) REFERENCES Users(UserID),
+                FOREIGN KEY (FacultyIDs) REFERENCES Users(UserID)
+                )''')
+
+    curs.execute('''CREATE TABLE IF NOT EXISTS Admins
+                (AdminID INTEGER PRIMARY KEY, 
+                FOREIGN KEY (AdminID) REFERENCES Users(UserID)
+                )''')
+
+    curs.execute('''CREATE TABLE IF NOT EXISTS Faculty
+                (FacultyID INTEGER PRIMARY KEY, Phone TEXT, Email TEXT, Name TEXT, Qualifications TEXT,
+                FOREIGN KEY (FacultyID) REFERENCES Users(UserID)
+                )''')
+
+    curs.execute('''CREATE TABLE IF NOT EXISTS Students
+                (StudentID INTEGER PRIMARY KEY, Phone TEXT, Email TEXT, Name TEXT, 
+                FOREIGN KEY (StudentID) REFERENCES Users(UserID)
+                )''')
+    
     conn.commit()
     conn.close()
 
@@ -24,17 +48,17 @@ def createTables() -> None:
 ###
 
 def open_admin_UI() -> None:
-    admin_win = tk.Toplevel()
+    admin_win = tk.Tk()
     admin_win.title("Welcome Admin")
     admin_win.state("zoomed")
 
 def open_faculty_UI() -> None:
-    faculty_win = tk.Toplevel()
+    faculty_win = tk.Tk()
     faculty_win.title("Welcome Faculty")
     faculty_win.state("zoomed")
 
 def open_student_UI() -> None:
-    student_win = tk.Toplevel()
+    student_win = tk.Tk()
     student_win.title("Welcome Student")
     student_win.state("zoomed")
 ###
