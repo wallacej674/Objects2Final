@@ -8,6 +8,8 @@ from tkinter import Tk, messagebox, ttk
 # Multithreading
 # Network Server and Client
 # Handle empty user inputs for updates to represent "do not update"
+# Add academic status (on track for graduation) and enrollment status (Fall 2024, College enrolled, Full/Part time)
+# Use information from piratenet records to aid in creating the database.
 
 
 # Purpose: Create the user database
@@ -338,7 +340,7 @@ def open_student_UI(username: str) -> None:
 
     communicate_with_fac = tk.Button(student_win, text= "communicate with faculty", command= communicate_with_faculty)
     communicate_with_fac.pack(pady= 10)
-
+s
     student_win.mainloop()
 
 ###
