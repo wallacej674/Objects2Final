@@ -5,8 +5,9 @@ from tkinter import Tk, messagebox, ttk
 ### Current Problems ###
 # UNCUSTOMIZED GUI
 # Role GUIs incomplete
-
-
+# Multithreading
+# Network Server and Client
+# Handle empty user inputs for updates to represent "do not update"
 
 
 # Purpose: Create the user database
@@ -21,7 +22,7 @@ def createTables() -> None:
     curs.execute("DROP TABLE IF EXISTS Courses")
     curs.execute("DROP TABLE IF EXISTS Enrollment")
     curs.execute("DROP TABLE IF EXISTS CourseStaff")
-
+    
     curs.execute('''CREATE TABLE IF NOT EXISTS Users
                 (UserID INTEGER PRIMARY KEY AUTOINCREMENT, Username TEXT, Password TEXT, Role TEXT)''')
 
@@ -54,9 +55,6 @@ def createTables() -> None:
                 FOREIGN KEY (CourseID) REFERENCES Courses(CourseID),
                 FOREIGN KEY (FacultyID) REFERENCES Faculty(FacultyID)
                 )''')
-
-
-
     conn.commit()
     conn.close()
 
@@ -71,6 +69,7 @@ def open_admin_UI() -> None:
     admin_win.title("Welcome Admin")
     admin_win.state("zoomed")
 
+    # Purpose: Enrolls a student to a course
     def addStudentCourse() -> None:
         add_win = tk.Tk()
         add_win.title("Add Student to Course")
@@ -101,7 +100,7 @@ def open_admin_UI() -> None:
 
             conn = sqlite3.connect('Users.db')
             curs = conn.cursor()
-
+            
             curs.execute("SELECT CourseID FROM Courses WHERE CourseName= ? and Schedule= ?",
                          (coursename, courseschedule))
             courseID = curs.fetchone()
@@ -120,6 +119,7 @@ def open_admin_UI() -> None:
         addbutton = tk.Button(add_win, text= "Add Student", command= save_changes)
         addbutton.grid(row= 3, column= 0, columnspan= 2, padx= 5, pady= 5)
 
+    # Purpose: Creates a course
     def createCourses() -> None:
         course_win = tk.Tk()
         course_win.title("Create Courses")
@@ -155,13 +155,63 @@ def open_admin_UI() -> None:
                              (newname, newschedule))
                 conn.commit()
                 messagebox.showinfo("Successful", "Course added successfully.")
-
+            
             conn.close()
             course_win.destroy()
-
+            
         savebutton = tk.Button(course_win, text= "Save Changes", command= save_changes)
         savebutton.grid(row= 2, column= 0, columnspan= 2, padx= 5, pady= 5)
 
+    # update a given course's information
+    def updateCourse() -> None:
+        update_win = tk.Tk()
+        update_win.title("Update Course")
+        update_win.state("zoomed")
+
+        courseIDlabel = tk.Label(update_win, text= "Course ID: ")
+        courseIDlabel.grid(row= 0, column= 0, padx= 5, pady= 5)
+        courseIDentry = tk.Entry(update_win)
+        courseIDentry.grid(row= 0, column= 1, padx= 5, pady= 5)
+
+        coursenamelabel = tk.Label(update_win, text= "New Course Name: ")
+        coursenamelabel.grid(row= 1, column= 0, padx= 5, pady= 5)
+        coursenameentry = tk.Entry(update_win)
+        coursenameentry.grid(row= 1, column= 1, padx= 5, pady= 5)
+
+        schedulelabel = tk.Label(update_win, text= "New Schedule: ")
+        schedulelabel.grid(row= 2, column= 0, padx= 5, pady= 5)
+        scheduleentry = tk.Entry(update_win)
+        scheduleentry.grid(row= 2, column= 1, padx= 5, pady= 5)
+
+        coursescheduleinfolabel = tk.Label(update_win, text= "Format Dates with Lettered Days (SuMTWRFSa): ##:## AM/PM - ##:## AM/PM \nExample: 'MW: 08:00 AM - 09:15 AM'")
+        coursescheduleinfolabel.grid(row= 2, column= 2, padx= 5, pady= 5)
+
+        def save_changes() -> None:
+            CourseID = courseIDentry.get()
+            newname = coursenameentry.get()
+            newschedule = scheduleentry.get()
+
+            conn = sqlite3.connect('Users.db')
+            curs = conn.cursor()
+
+            curs.execute("SELECT * FROM Courses WHERE CourseID= ?",
+                         (CourseID))
+            course = curs.fetchone()
+            if course:
+                curs.execute("UPDATE Courses SET CourseName = ?, Schedule= ? WHERE CourseID= ?",
+                             (newname, newschedule, CourseID))
+                conn.commit()
+                messagebox.showinfo("Successful", "Course updated successfully.")
+            else:
+                messagebox.showerror("Failure", "Course does not exist.")
+                
+            conn.close()
+            update_win.destroy()
+
+        savebutton = tk.Button(update_win, text= "Save Changes", command= save_changes)
+        savebutton.grid(row= 3, column= 0, columnspan= 2, padx= 5, pady= 5)
+
+    # Updates the personal information of a student
     def update_profile() -> None:
         update_win = tk.Tk()
         update_win.title("Update Profile")
@@ -176,7 +226,7 @@ def open_admin_UI() -> None:
         phonelabel.grid(row= 1, column= 0, padx= 5, pady= 5)
         phoneentry = tk.Entry(update_win)
         phoneentry.grid(row= 1, column= 1, padx= 5, pady= 5)
-
+    
         emaillabel = tk.Label(update_win, text= "Student Email:")
         emaillabel.grid(row= 2, column= 0, padx= 5, pady= 5)
         emailentry = tk.Entry(update_win)
@@ -216,14 +266,17 @@ def open_admin_UI() -> None:
     create_courses_button = tk.Button(admin_win, text= "Create Courses", command= createCourses)
     create_courses_button.pack(pady= 10)
 
+    update_course_button = tk.Button(admin_win, text= "Update Course", command= updateCourse)
+    update_course_button.pack(pady= 10)
+    
     add_student_to_course_button = tk.Button(admin_win, text= "Add Student to Course", command= addStudentCourse)
     add_student_to_course_button.pack(pady= 10)
 
     update_profile_button = tk.Button(admin_win, text= "Update Student Profile", command= update_profile)
     update_profile_button.pack(pady= 10)
-
+    
     admin_win.mainloop()
-
+    
 def open_faculty_UI() -> None:
     faculty_win = tk.Tk()
     faculty_win.title("Welcome Faculty")
@@ -233,7 +286,6 @@ def open_student_UI(username: str) -> None:
     student_win = tk.Tk()
     student_win.title("Welcome Student")
     student_win.state("zoomed")
-
 
     def view_courses():
         conn = sqlite3.connect('Users.db')
@@ -287,20 +339,16 @@ def open_student_UI(username: str) -> None:
     communicate_with_fac = tk.Button(student_win, text= "communicate with faculty", command= communicate_with_faculty)
     communicate_with_fac.pack(pady= 10)
 
-
     student_win.mainloop()
 
-
-
-
 ###
 
 
-# DATABASE FUNCTIONS
+# USER FUNCTIONS
 
 
 ###
-
+    
 def registercredentials() -> None:
     username = username_entry.get()
     password = password_entry.get()
@@ -318,7 +366,7 @@ def registercredentials() -> None:
         messagebox.showerror("Error", "Username already exists. Please try again.")
     else:
         curs.execute("INSERT INTO Users(Username, Password, Role) VALUES (?, ?, ?)",
-                     (username, password, role))
+                 (username, password, role))
         userid = curs.lastrowid
         if role == 'Admin':
             curs.execute("INSERT INTO Admins (AdminID) VALUES (?)",
@@ -329,7 +377,7 @@ def registercredentials() -> None:
         elif role == 'Student':
             curs.execute("INSERT INTO Students (StudentID) VALUES (?)",
                          (userid, ))
-
+            
         conn.commit()
         messagebox.showinfo("Welcome", "Registration successful")
 
@@ -398,14 +446,12 @@ username_entry2.grid(row= 1, column= 3, padx= 10, pady= 5)
 
 password_entry2 = tk.Entry(main_win, show="*")
 password_entry2.grid(row= 2, column= 3, padx= 5, pady= 5)
-
+        
 register_button = tk.Button(main_win, text= "Register", command= registercredentials)
 register_button.grid(row= 4, column= 0, padx= 5, pady= 5)
-
+    
 login_button = tk.Button(main_win, text= "Login", command= UserLogin)
 login_button.grid(row= 3, column= 2, padx= 5, pady= 5)
-
-createTables()
 
 main_win.mainloop()
 
