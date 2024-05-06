@@ -213,8 +213,46 @@ def open_admin_UI() -> None:
         savebutton = tk.Button(update_win, text= "Save Changes", command= save_changes)
         savebutton.grid(row= 3, column= 0, columnspan= 2, padx= 5, pady= 5)
 
+    # View a student's profile information
+    def view_student_profile() -> None:
+        view_win = tk.Tk()
+        view_win.title("View Profile")
+        view_win.state("zoomed")
+
+        studentIDlabel = tk.Label(view_win, text= "Student ID: ")
+        studentIDlabel.grid(row= 0, column= 0, padx= 5, pady= 5)
+        studentIDentry = tk.Entry(view_win)
+        studentIDentry.grid(row= 0, column= 1, padx= 5, pady= 5)
+
+        def view_information() -> None:
+            studentID = studentIDentry.get()
+
+            conn = sqlite3.connect('Users.db')
+            curs = conn.cursor()
+
+            curs.execute("SELECT * FROM Students WHERE StudentID = ?", (studentID,))
+            student = curs.fetchone()
+
+            if student:
+                info_win = tk.Tk()
+                info_win.title("Student Profile")
+                info_win.state("zoomed")
+                
+                infolabel = tk.Label(info_win, text=f"Phone: {student[1]} \n Email: {student[2]} \n Name: {student[3]}")
+                infolabel.grid(row= 0, column= 0, padx= 5, pady= 5)
+
+                messagebox.showinfo("Successful", "Student's Personal Information Shown")
+            else:
+                messagebox.showerror("Failure", "Student was not found.")
+                
+            conn.close()
+            view_win.destroy()
+                
+        viewbutton = tk.Button(view_win, text= "View Profile", command= view_information)
+        viewbutton.grid(row= 1, column= 0, columnspan= 2, padx= 5, pady= 5)
+
     # Updates the personal information of a student
-    def update_profile() -> None:
+    def update_student_profile() -> None:
         update_win = tk.Tk()
         update_win.title("Update Profile")
         update_win.state("zoomed")
@@ -274,7 +312,10 @@ def open_admin_UI() -> None:
     add_student_to_course_button = tk.Button(admin_win, text= "Add Student to Course", command= addStudentCourse)
     add_student_to_course_button.pack(pady= 10)
 
-    update_profile_button = tk.Button(admin_win, text= "Update Student Profile", command= update_profile)
+    view_profile_button = tk.Button(admin_win, text= "View Student Information", command= view_student_profile)
+    view_profile_button.pack(pady= 10)
+
+    update_profile_button = tk.Button(admin_win, text= "Update Student Profile", command= update_student_profile)
     update_profile_button.pack(pady= 10)
     
     admin_win.mainloop()
@@ -340,7 +381,7 @@ def open_student_UI(username: str) -> None:
 
     communicate_with_fac = tk.Button(student_win, text= "communicate with faculty", command= communicate_with_faculty)
     communicate_with_fac.pack(pady= 10)
-s
+
     student_win.mainloop()
 
 ###
