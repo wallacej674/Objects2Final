@@ -12,6 +12,8 @@ from tkinter import Tk, messagebox, ttk
 # Use information from piratenet records to aid in creating the database.
 
 
+
+
 # Purpose: Create the user database
 def createTables() -> None:
     conn = sqlite3.connect('Users.db')
@@ -111,7 +113,6 @@ def open_admin_UI() -> None:
 
             conn = sqlite3.connect('Users.db')
             curs = conn.cursor()
-            
 
             curs.execute("SELECT CourseID FROM Courses WHERE CourseName= ? and Schedule= ?",
                          (coursename, courseschedule))
@@ -167,11 +168,9 @@ def open_admin_UI() -> None:
                              (newname, newschedule))
                 conn.commit()
                 messagebox.showinfo("Successful", "Course added successfully.")
-            
 
             conn.close()
             course_win.destroy()
-            
 
         savebutton = tk.Button(course_win, text= "Save Changes", command= save_changes)
         savebutton.grid(row= 2, column= 0, columnspan= 2, padx= 5, pady= 5)
@@ -225,46 +224,8 @@ def open_admin_UI() -> None:
         savebutton = tk.Button(update_win, text= "Save Changes", command= save_changes)
         savebutton.grid(row= 3, column= 0, columnspan= 2, padx= 5, pady= 5)
 
-    # View a student's profile information
-    def view_student_profile() -> None:
-        view_win = tk.Tk()
-        view_win.title("View Profile")
-        view_win.state("zoomed")
-
-        studentIDlabel = tk.Label(view_win, text= "Student ID: ")
-        studentIDlabel.grid(row= 0, column= 0, padx= 5, pady= 5)
-        studentIDentry = tk.Entry(view_win)
-        studentIDentry.grid(row= 0, column= 1, padx= 5, pady= 5)
-
-        def view_information() -> None:
-            studentID = studentIDentry.get()
-
-            conn = sqlite3.connect('Users.db')
-            curs = conn.cursor()
-
-            curs.execute("SELECT * FROM Students WHERE StudentID = ?", (studentID,))
-            student = curs.fetchone()
-
-            if student:
-                info_win = tk.Tk()
-                info_win.title("Student Profile")
-                info_win.state("zoomed")
-                
-                infolabel = tk.Label(info_win, text=f"Phone: {student[1]} \n Email: {student[2]} \n Name: {student[3]}")
-                infolabel.grid(row= 0, column= 0, padx= 5, pady= 5)
-
-                messagebox.showinfo("Successful", "Student's Personal Information Shown")
-            else:
-                messagebox.showerror("Failure", "Student was not found.")
-                
-            conn.close()
-            view_win.destroy()
-                
-        viewbutton = tk.Button(view_win, text= "View Profile", command= view_information)
-        viewbutton.grid(row= 1, column= 0, columnspan= 2, padx= 5, pady= 5)
-
     # Updates the personal information of a student
-    def update_student_profile() -> None:
+    def update_profile() -> None:
         update_win = tk.Tk()
         update_win.title("Update Profile")
         update_win.state("zoomed")
@@ -278,7 +239,7 @@ def open_admin_UI() -> None:
         phonelabel.grid(row= 1, column= 0, padx= 5, pady= 5)
         phoneentry = tk.Entry(update_win)
         phoneentry.grid(row= 1, column= 1, padx= 5, pady= 5)
-    
+
         emaillabel = tk.Label(update_win, text= "Student Email:")
         emaillabel.grid(row= 2, column= 0, padx= 5, pady= 5)
         emailentry = tk.Entry(update_win)
@@ -315,23 +276,65 @@ def open_admin_UI() -> None:
         savebutton = tk.Button(update_win, text= "Save Changes", command= save_changes)
         savebutton.grid(row= 4, column= 0, columnspan= 2, padx= 5, pady= 5)
 
+    def view_student_profile() -> None:
+        view_win = tk.Tk()
+        view_win.title("View Profile")
+        view_win.state("zoomed")
+
+        studentIDlabel = tk.Label(view_win, text= "Student ID: ")
+        studentIDlabel.grid(row=0,column=0, padx=5, pady=5)
+        studentIDentry = tk.Entry(view_win)
+        studentIDentry.grid(row=0, column=1, padx=5, pady= 5)
+
+        def view_information() -> None:
+            studentID = studentIDentry.get()
+
+            conn = sqlite3.connect('Users.db')
+            curs = conn.cursor()
+
+            curs.execute("SELECT * FROM Students WHERE StudentID = ?", (studentID,))
+            student = curs.fetchone()
+
+            if student:
+                info_win = tk.Tk()
+                info_win.title("Student Profile")
+                info_win.state("zoomed")
+
+
+                infolabel = tk.Label(info_win, text= f"phone: {student[1]} \n Email: {student[2]} \n Name: {student[3]}")
+                infolabel.grid(row= 0, column= 0, padx= 5, pady= 5)
+
+                messagebox.showinfo("Successful", "Student's Personal Information Shown")
+
+            else:
+                messagebox.showerror("Failure", "Student was not found.")
+
+            conn.close()
+            view_win.destroy()
+
+        viewbutton = tk.Button(view_win, text= "View Profile", command= view_information)
+        viewbutton.grid(row=1, column=0, columnspan=2, padx=5, pady=5)
+
+
     create_courses_button = tk.Button(admin_win, text= "Create Courses", command= createCourses)
     create_courses_button.pack(pady= 10)
 
     update_course_button = tk.Button(admin_win, text= "Update Course", command= updateCourse)
     update_course_button.pack(pady= 10)
-    
+
     add_student_to_course_button = tk.Button(admin_win, text= "Add Student to Course", command= addStudentCourse)
     add_student_to_course_button.pack(pady= 10)
 
     view_profile_button = tk.Button(admin_win, text= "View Student Information", command= view_student_profile)
     view_profile_button.pack(pady= 10)
 
-    update_profile_button = tk.Button(admin_win, text= "Update Student Profile", command= update_student_profile)
+    update_profile_button = tk.Button(admin_win, text= "Update Student Profile", command= update_profile)
     update_profile_button.pack(pady= 10)
-    
+
+
+
     admin_win.mainloop()
-    
+
 def open_faculty_UI() -> None:
     faculty_win = tk.Tk()
     faculty_win.title("Welcome Faculty")
@@ -462,7 +465,7 @@ def open_student_UI(username: str) -> None:
 
 
 ###
-    
+
 def registercredentials() -> None:
     username = username_entry.get()
     password = password_entry.get()
@@ -480,7 +483,7 @@ def registercredentials() -> None:
         messagebox.showerror("Error", "Username already exists. Please try again.")
     else:
         curs.execute("INSERT INTO Users(Username, Password, Role) VALUES (?, ?, ?)",
-                 (username, password, role))
+                     (username, password, role))
         userid = curs.lastrowid
         if role == 'Admin':
             curs.execute("INSERT INTO Admins (AdminID) VALUES (?)",
@@ -491,7 +494,7 @@ def registercredentials() -> None:
         elif role == 'Student':
             curs.execute("INSERT INTO Students (StudentID) VALUES (?)",
                          (userid, ))
-            
+
         conn.commit()
         messagebox.showinfo("Welcome", "Registration successful")
 
@@ -560,10 +563,10 @@ username_entry2.grid(row= 1, column= 3, padx= 10, pady= 5)
 
 password_entry2 = tk.Entry(main_win, show="*")
 password_entry2.grid(row= 2, column= 3, padx= 5, pady= 5)
-        
+
 register_button = tk.Button(main_win, text= "Register", command= registercredentials)
 register_button.grid(row= 4, column= 0, padx= 5, pady= 5)
-    
+
 login_button = tk.Button(main_win, text= "Login", command= UserLogin)
 login_button.grid(row= 3, column= 2, padx= 5, pady= 5)
 
