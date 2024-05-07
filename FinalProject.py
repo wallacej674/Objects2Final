@@ -62,7 +62,6 @@ def createTables() -> None:
                 )''')
     curs.execute(''' CREATE TABLE IF NOT EXISTS Grades(
                 CourseID INTEGER, 
-                FacultyID INTEGER,
                 StudentID INTEGER,
                 student_grade FLOAT,
                 FOREIGN KEY (CourseID) REFERENCES Courses(CourseID),
@@ -401,7 +400,7 @@ def open_student_UI(username: str) -> None:
             # Get the student's ID based on their username
             curs.execute("SELECT UserID FROM Users WHERE Username = ?", (username,))
             studentID = curs.fetchone()[0]
-
+            student_grade = 100
             coursename = coursenameentry.get()
             courseschedule = coursescheduleentry.get()
 
@@ -415,6 +414,11 @@ def open_student_UI(username: str) -> None:
                 courseID = courseID[0]
                 curs.execute("INSERT INTO Enrollment(CourseID, StudentID) VALUES (?, ?)",
                              (courseID, studentID))
+
+                #inserts the default grade of 100
+                curs.execute("INSERT INTO Grades(CourseID, StudentID, student_grade) VALUES(?,?,?)",
+                             (courseID, studentID, student_grade))
+
                 conn.commit()
                 messagebox.showinfo("Successful", "Added to Course!")
 
@@ -434,7 +438,24 @@ def open_student_UI(username: str) -> None:
         pass
 
     def view_grades():
-        pass
+        conn = sqlite3.connect('Users.db')
+        curs = conn.cursor()
+
+        # Get the student's ID based on their username
+        curs.execute("SELECT UserID FROM Users WHERE Username = ?", (username,))
+        student_id = curs.fetchone()[0]
+
+         # Get the grades for the student
+        curs.execute("SELECT CourseName, student_grade FROM Grades "
+                    "INNER JOIN Courses ON Grades.CourseID = Courses.CourseID "
+                    "WHERE StudentID = ?", (student_id,))
+        grades = curs.fetchall()
+        conn.close()
+
+        grades_win = tk.Toplevel(student_win)
+        grades_win.title("Grades")
+        for i, (course_name, grade) in enumerate(grades):
+            tk.Label(grades_win, text=f"Course: {course_name} - Grade: {grade}").pack()
 
     def communicate_with_faculty():
         pass
