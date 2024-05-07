@@ -24,7 +24,8 @@ def createTables() -> None:
     curs.execute("DROP TABLE IF EXISTS Courses")
     curs.execute("DROP TABLE IF EXISTS Enrollment")
     curs.execute("DROP TABLE IF EXISTS CourseStaff")
-    
+    curs.execute("DROP TABLE IF EXISTS Grades")
+
     curs.execute('''CREATE TABLE IF NOT EXISTS Users
                 (UserID INTEGER PRIMARY KEY AUTOINCREMENT, Username TEXT, Password TEXT, Role TEXT)''')
 
@@ -57,6 +58,14 @@ def createTables() -> None:
                 FOREIGN KEY (CourseID) REFERENCES Courses(CourseID),
                 FOREIGN KEY (FacultyID) REFERENCES Faculty(FacultyID)
                 )''')
+    curs.execute(''' CREATE TABLE IF NOT EXISTS Grades(
+                CourseID INTEGER, 
+                FacultyID INTEGER,
+                StudentID INTEGER,
+                student_grade FLOAT,
+                FOREIGN KEY (CourseID) REFERENCES Courses(CourseID),
+                FOREIGN KEY (StudentID) REFERENCES Students(StudentID),
+                FOREIGN KEY (FacultyID) REFERENCES Faculty(FacultyID))''')
     conn.commit()
     conn.close()
 
@@ -103,6 +112,7 @@ def open_admin_UI() -> None:
             conn = sqlite3.connect('Users.db')
             curs = conn.cursor()
             
+
             curs.execute("SELECT CourseID FROM Courses WHERE CourseName= ? and Schedule= ?",
                          (coursename, courseschedule))
             courseID = curs.fetchone()
@@ -158,9 +168,11 @@ def open_admin_UI() -> None:
                 conn.commit()
                 messagebox.showinfo("Successful", "Course added successfully.")
             
+
             conn.close()
             course_win.destroy()
             
+
         savebutton = tk.Button(course_win, text= "Save Changes", command= save_changes)
         savebutton.grid(row= 2, column= 0, columnspan= 2, padx= 5, pady= 5)
 
@@ -206,7 +218,7 @@ def open_admin_UI() -> None:
                 messagebox.showinfo("Successful", "Course updated successfully.")
             else:
                 messagebox.showerror("Failure", "Course does not exist.")
-                
+
             conn.close()
             update_win.destroy()
 
@@ -331,6 +343,8 @@ def open_student_UI(username: str) -> None:
     student_win.state("zoomed")
 
     def view_courses():
+
+
         conn = sqlite3.connect('Users.db')
         curs = conn.cursor()
 
@@ -354,8 +368,64 @@ def open_student_UI(username: str) -> None:
             tk.Label(courses_win, text=f"Course {i + 1}: {course_name} - {schedule}").pack()
 
 
+
+
+
     def register_class():
-        pass
+        course_win = tk.Tk()
+        course_win.title("Add Student to Course")
+        course_win.state("zoomed")
+
+        conn = sqlite3.connect('Users.db')
+        curs = conn.cursor()
+        coursenamelabel = tk.Label(course_win, text= "Course Name: ")
+        coursenamelabel.grid(row= 1, column= 0, padx= 5, pady= 5)
+        coursenameentry = tk.Entry(course_win)
+        coursenameentry.grid(row= 1, column= 1, padx= 5, pady= 5)
+
+        courseschedulelabel = tk.Label(course_win, text= "Course Schedule: ")
+        courseschedulelabel.grid(row= 2, column= 0, padx= 5, pady= 5)
+        coursescheduleentry = tk.Entry(course_win)
+        coursescheduleentry.grid(row= 2, column= 1, padx= 5, pady= 5)
+
+        coursescheduleinfolabel = tk.Label(course_win, text= "Format Dates with Lettered Days (SuMTWRFSa): ##:## AM/PM - ##:## AM/PM \nExample: 'MW: 08:00 AM - 09:15 AM'")
+        coursescheduleinfolabel.grid(row= 2, column= 2, padx= 5, pady= 5)
+
+        def save_changes() -> None:
+
+            conn = sqlite3.connect('Users.db')
+            curs = conn.cursor()
+            # Get the student's ID based on their username
+            curs.execute("SELECT UserID FROM Users WHERE Username = ?", (username,))
+            studentID = curs.fetchone()[0]
+
+            coursename = coursenameentry.get()
+            courseschedule = coursescheduleentry.get()
+
+            conn = sqlite3.connect('Users.db')
+            curs = conn.cursor()
+
+            curs.execute("SELECT CourseID FROM Courses WHERE CourseName= ? and Schedule= ?",
+                         (coursename, courseschedule))
+            courseID = curs.fetchone()
+            if courseID:
+                courseID = courseID[0]
+                curs.execute("INSERT INTO Enrollment(CourseID, StudentID) VALUES (?, ?)",
+                             (courseID, studentID))
+                conn.commit()
+                messagebox.showinfo("Successful", "Added to Course!")
+
+                conn.close()
+                student_win.destroy()
+            else:
+                messagebox.showerror("Failure", "Course does not exist")
+
+        addbutton = tk.Button(course_win, text= "Add Course", command= save_changes)
+        addbutton.grid(row= 3, column= 0, columnspan= 2, padx= 5, pady= 5)
+
+
+
+
 
     def submit_assignment():
         pass
@@ -365,6 +435,7 @@ def open_student_UI(username: str) -> None:
 
     def communicate_with_faculty():
         pass
+
 
     view_courses = tk.Button(student_win, text= "View Courses", command= view_courses)
     view_courses.pack(pady= 10)
