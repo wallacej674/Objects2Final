@@ -62,7 +62,6 @@ def createTables() -> None:
                 )''')
     curs.execute(''' CREATE TABLE IF NOT EXISTS Grades(
                 CourseID INTEGER, 
-                FacultyID INTEGER,
                 StudentID INTEGER,
                 student_grade FLOAT,
                 FOREIGN KEY (CourseID) REFERENCES Courses(CourseID),
@@ -147,7 +146,6 @@ def open_admin_UI() -> None:
             if faculty:
                 curs.execute("DELETE FROM CourseStaff WHERE FacultyID = ?", (facultyID, ))
                 curs.execute("DELETE FROM Faculty WHERE FacultyID = ?", (facultyID, ))
-                curs.execute("DELETE FROM Grades WHERE FacultyID = ?", (facultyID, ))
 
                 conn.commit()
 
@@ -963,6 +961,10 @@ def open_student_UI(username: str) -> None:
                 courseID = courseID[0]
                 curs.execute("INSERT INTO Enrollment(CourseID, StudentID) VALUES (?, ?)",
                              (courseID, studentID))
+
+                curs.execute("INSERT INTO Grades(CourseID, StudentID, student_grade) VALUES(?,?,?)",
+                             (courseID, studentID, 100.0))
+
                 conn.commit()
                 messagebox.showinfo("Successful", "Added to Course!")
 
