@@ -527,11 +527,18 @@ def open_admin_UI() -> None:
                          (coursename, courseschedule))
             courseID = curs.fetchone()
             if courseID:
-                courseID = courseID[0]
-                curs.execute("INSERT INTO CourseStaff(CourseID, FacultyID) VALUES (?, ?)",
+                curs.execute("SELECT * FROM Faculty WHERE FacultyID= ?", (facultyID, ))
+                faculty = curs.fetchone()
+                if faculty:
+                    courseID = courseID[0]
+                    curs.execute("INSERT INTO CourseStaff(CourseID, FacultyID) VALUES (?, ?)",
                              (courseID, facultyID))
-                conn.commit()
-                messagebox.showinfo("Successful", "Faculty added to Course")
+
+                    conn.commit()
+                    messagebox.showinfo("Successful", "Faculty added to Course")
+
+                else:
+                    messagebox.showerror("Failure", "Faculty does not exist")
 
                 conn.close()
                 add_win.destroy()
@@ -1080,6 +1087,7 @@ def UserLogin() -> None:
 # MAIN GUI
 
 ###
+createTables()
 
 main_win = tk.Tk()
 main_win.title("User Login")

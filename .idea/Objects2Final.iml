@@ -3,7 +3,9 @@
   <component name="NewModuleRootManager" inherit-compiler-output="true">
     <exclude-output />
     <content url="file://C:/Program Files/Python312/DLLs" />
-    <content url="file://C:/Program Files/Python312/Lib" />
+    <content url="file://C:/Program Files/Python312/Lib">
+      <sourceFolder url="file://C:/Program Files/Python312/Lib/site-packages" isTestSource="false" />
+    </content>
     <orderEntry type="inheritedJdk" />
     <orderEntry type="sourceFolder" forTests="false" />
   </component>
