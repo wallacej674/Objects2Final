@@ -26,6 +26,7 @@ def createTables() -> None:
     curs.execute("DROP TABLE IF EXISTS Enrollment")
     curs.execute("DROP TABLE IF EXISTS CourseStaff")
     curs.execute("DROP TABLE IF EXISTS Grades")
+    curs.execute("DROP TABLE IF EXISTS Exams")
     
     curs.execute('''CREATE TABLE IF NOT EXISTS Users
                 (UserID INTEGER PRIMARY KEY AUTOINCREMENT, Username TEXT, Password TEXT, Role TEXT)''')
@@ -34,17 +35,17 @@ def createTables() -> None:
                 (CourseID INTEGER PRIMARY KEY AUTOINCREMENT, CourseName TEXT, Schedule TEXT
                 )''')
     curs.execute('''CREATE TABLE IF NOT EXISTS Admins
-                (AdminID INTEGER PRIMARY KEY, Phone TEXT, Email TEXT, Name TEXT,
+                (AdminID INTEGER PRIMARY KEY AUTOINCREMENT, Phone TEXT, Email TEXT, Name TEXT,
                 FOREIGN KEY (AdminID) REFERENCES Users(UserID)
                 )''')
 
     curs.execute('''CREATE TABLE IF NOT EXISTS Faculty
-                (FacultyID INTEGER PRIMARY KEY, Phone TEXT, Email TEXT, Name TEXT, Qualifications TEXT,
+                (FacultyID INTEGER PRIMARY KEY AUTOINCREMENT, Phone TEXT, Email TEXT, Name TEXT, Qualifications TEXT,
                 FOREIGN KEY (FacultyID) REFERENCES Users(UserID)
                 )''')
 
     curs.execute('''CREATE TABLE IF NOT EXISTS Students
-                (StudentID INTEGER PRIMARY KEY, Phone TEXT, Email TEXT, Name TEXT, Grade TEXT, Graduation TEXT,
+                (StudentID INTEGER PRIMARY KEY AUTOINCREMENT, Phone TEXT, Email TEXT, Name TEXT, Grade TEXT, Graduation TEXT,
                 FOREIGN KEY (StudentID) REFERENCES Users(UserID)
                 )''')
     curs.execute('''CREATE TABLE IF NOT EXISTS Enrollment
@@ -61,11 +62,16 @@ def createTables() -> None:
                 )''')
     curs.execute(''' CREATE TABLE IF NOT EXISTS Grades(
                 CourseID INTEGER, 
+                FacultyID INTEGER,
                 StudentID INTEGER,
                 student_grade FLOAT,
                 FOREIGN KEY (CourseID) REFERENCES Courses(CourseID),
                 FOREIGN KEY (StudentID) REFERENCES Students(StudentID),
                 FOREIGN KEY (FacultyID) REFERENCES Faculty(FacultyID))''')
+    curs.execute(''' CREATE TABLE IF NOT EXISTS Exams
+                (ExamID INTEGER PRIMARY KEY AUTOINCREMENT, Name TEXT, Date TEXT, CourseID INTEGER,
+                FOREIGN KEY (CourseID) REFERENCES Courses(CourseID)
+                )''')
     conn.commit()
     conn.close()
 
@@ -82,6 +88,78 @@ def open_admin_UI() -> None:
     admin_win.title("Welcome Admin")
     admin_win.state("zoomed")
 
+    # Purpose: Delete a student
+    def deleteStudent() -> None:
+        delete_win = tk.Tk()
+        delete_win.title("Delete Student")
+        delete_win.state("zoomed")
+
+        studentIDlabel = tk.Label(delete_win, text= "Student ID: ")
+        studentIDlabel.grid(row= 0, column= 0, padx= 5, pady= 5)
+        studentIDentry = tk.Entry(delete_win)
+        studentIDentry.grid(row= 0, column= 1, padx= 5, pady= 5)
+
+        def save_changes() -> None:
+            studentID = studentIDentry.get()
+
+            conn = sqlite3.connect('Users.db')
+            curs = conn.cursor()
+            
+            curs.execute("SELECT * FROM Students WHERE StudentID= ?",
+                         (studentID,))
+            student = curs.fetchone()
+            if student:
+                curs.execute("DELETE FROM Enrollment WHERE StudentID = ?", (studentID, ))
+                curs.execute("DELETE FROM Students WHERE StudentID = ?", (studentID, ))
+                curs.execute("DELETE FROM Grades WHERE StudentID = ?", (studentID, ))
+
+                conn.commit()
+
+                messagebox.showinfo("Success", "Student deleted successfully")
+                delete_win.destroy()
+            else:
+                messagebox.showerror("Failure", "Student not found.")
+                delete_win.destroy()
+
+        savebutton = tk.Button(delete_win, text= "Delete Student", command= save_changes)
+        savebutton.grid(row= 2, column= 0, columnspan= 2, padx= 5, pady= 5)
+            
+    # Purpose: Delete Faculty
+    def deleteFaculty() -> None:
+        delete_win = tk.Tk()
+        delete_win.title("Delete Faculty")
+        delete_win.state("zoomed")
+
+        facultyIDlabel = tk.Label(delete_win, text= "Faculty ID: ")
+        facultyIDlabel.grid(row= 0, column= 0, padx= 5, pady= 5)
+        facultyIDentry = tk.Entry(delete_win)
+        facultyIDentry.grid(row= 0, column= 1, padx= 5, pady= 5)
+
+        def save_changes() -> None:
+            facultyID = facultyIDentry.get()
+
+            conn = sqlite3.connect('Users.db')
+            curs = conn.cursor()
+            
+            curs.execute("SELECT * FROM Faculty WHERE FacultyID= ?",
+                         (facultyID,))
+            faculty = curs.fetchone()
+            if faculty:
+                curs.execute("DELETE FROM CourseStaff WHERE FacultyID = ?", (facultyID, ))
+                curs.execute("DELETE FROM Faculty WHERE FacultyID = ?", (facultyID, ))
+                curs.execute("DELETE FROM Grades WHERE FacultyID = ?", (facultyID, ))
+
+                conn.commit()
+
+                messagebox.showinfo("Success", "Faculty deleted successfully")
+                delete_win.destroy()
+            else:
+                messagebox.showerror("Failure", "Faculty not found.")
+                delete_win.destroy()
+
+        savebutton = tk.Button(delete_win, text= "Delete Faculty", command= save_changes)
+        savebutton.grid(row= 2, column= 0, columnspan= 2, padx= 5, pady= 5)
+        
     # Purpose: Enrolls a student to a course
     def addStudentCourse() -> None:
         add_win = tk.Tk()
@@ -118,19 +196,69 @@ def open_admin_UI() -> None:
                          (coursename, courseschedule))
             courseID = curs.fetchone()
             if courseID:
-                courseID = courseID[0]
-                curs.execute("INSERT INTO Enrollment(CourseID, StudentID) VALUES (?, ?)",
-                             (courseID, studentID))
-                conn.commit()
-                messagebox.showinfo("Successful", "Student added to Course")
+                curs.execute("SELECT * FROM Students WHERE StudentID= ?",
+                             (studentID, ))
+                student = curs.fetchone()
+                if student:
+                    courseID = courseID[0]
+                    curs.execute("INSERT INTO Enrollment(CourseID, StudentID) VALUES (?, ?)",
+                                 (courseID, studentID))
+                    conn.commit()
+                    messagebox.showinfo("Successful", "Student added to Course")
 
-                conn.close()
-                add_win.destroy()
+                    conn.close()
+                    add_win.destroy()
+                else:
+                    messagebox.showerror("Failure", "Student does not exist")
+                    add_win.destroy()
             else:
                 messagebox.showerror("Failure", "Course does not exist")
 
+                add_win.destroy()
+
         addbutton = tk.Button(add_win, text= "Add Student", command= save_changes)
         addbutton.grid(row= 3, column= 0, columnspan= 2, padx= 5, pady= 5)
+
+    # Purpose: Delete an enrollment
+    def deleteEnrollment() -> None:
+        delete_win = tk.Tk()
+        delete_win.title("Delete Enrollment")
+        delete_win.state("zoomed")
+
+        courseIDlabel = tk.Label(delete_win, text= "Course ID: ")
+        courseIDlabel.grid(row= 0, column= 0, padx= 5, pady= 5)
+        courseIDentry = tk.Entry(delete_win)
+        courseIDentry.grid(row= 0, column= 1, padx= 5, pady= 5)
+
+        studentIDlabel = tk.Label(delete_win, text= "Student ID: ")
+        studentIDlabel.grid(row= 1, column= 0, padx= 5, pady= 5)
+        studentIDentry = tk.Entry(delete_win)
+        studentIDentry.grid(row= 1, column= 1, padx= 5, pady= 5)
+
+        def save_changes() -> None:
+            courseID = courseIDentry.get()
+            studentID = studentIDentry.get()
+
+            conn = sqlite3.connect('Users.db')
+            curs = conn.cursor()
+
+            curs.execute("SELECT * FROM Enrollment WHERE CourseID = ? AND StudentID = ?", (courseID, studentID))
+            enrollment = curs.fetchone()
+            
+            if enrollment:
+                curs.execute("DELETE FROM Enrollment WHERE CourseID= ? AND StudentID = ?", (courseID, studentID))
+
+                conn.commit()
+                conn.close()
+
+                messagebox.showinfo("Successful", "Enrollment deleted successfully.")
+                delete_win.destroy()
+            else:
+                messagebox.showerror("Failure", "Enrollment not found.")
+                delete_win.destroy()
+
+        savebutton = tk.Button(delete_win, text= "Delete Enrollment", command= save_changes)
+        savebutton.grid(row= 2, column= 0, columnspan= 2, padx= 5, pady= 5)
 
     # Purpose: Creates a course
     def createCourses() -> None:
@@ -363,6 +491,7 @@ def open_admin_UI() -> None:
         savebutton = tk.Button(update_win, text= "Save Changes", command= save_changes)
         savebutton.grid(row= 6, column= 0, columnspan= 2, padx= 5, pady= 5)
 
+    # Add a Faculty Member to a Course
     def addFacultyCourse() -> None:
         add_win = tk.Tk()
         add_win.title("Add Faculty to Course")
@@ -413,6 +542,54 @@ def open_admin_UI() -> None:
         addbutton = tk.Button(add_win, text= "Add Student", command= save_changes)
         addbutton.grid(row= 3, column= 0, columnspan= 2, padx= 5, pady= 5)
 
+    # Delete a faculty from a course
+    def deleteCourseStaff() -> None:
+        delete_win = tk.Tk()
+        delete_win.title("Delete Staff from Course")
+        delete_win.state("zoomed")
+
+        courseIDlabel = tk.Label(delete_win, text= "Course ID: ")
+        courseIDlabel.grid(row= 0, column= 0, padx= 5, pady= 5)
+        courseIDentry = tk.Entry(delete_win)
+        courseIDentry.grid(row= 0, column= 1, padx= 5, pady= 5)
+
+        facultyIDlabel = tk.Label(delete_win, text= "Faculty ID: ")
+        facultyIDlabel.grid(row= 1, column= 0, padx= 5, pady= 5)
+        facultyIDentry = tk.Entry(delete_win)
+        facultyIDentry.grid(row= 1, column= 1, padx= 5, pady= 5)
+
+        def save_changes() -> None:
+            courseID = courseIDentry.get()
+            facultyID = facultyIDentry.get()
+
+            conn = sqlite3.connect('Users.db')
+            curs = conn.cursor()
+
+            curs.execute("SELECT * FROM Courses WHERE CourseID = ?", (courseID,))
+            course = curs.fetchone()
+            
+            if course:
+                curs.execute("SELECT * FROM Faculty WHERE FacultyID= ?", (facultyID, ))
+                faculty = curs.fetchone()
+                if faculty:
+                    curs.execute("DELETE FROM CourseStaff WHERE CourseID= ? AND FacultyID= ?", (courseID, facultyID))
+
+                    conn.commit()
+                    conn.close()
+
+                    messagebox.showinfo("Successful", "Faculty has been deleted successfully from course.")
+                    delete_win.destroy()
+                else:
+                    messagebox.showerror("Failure", "Faculty not found.")
+                    delete_win.destroy()
+            else:
+                messagebox.showerror("Failure", "Course not found.")
+                delete_win.destroy()
+
+        savebutton = tk.Button(delete_win, text= "Delete Course", command= save_changes)
+        savebutton.grid(row= 2, column= 0, columnspan= 2, padx= 5, pady= 5)
+
+    # Update a faculty member's profile
     def update_faculty_profile() -> None:
         update_win = tk.Tk()
         update_win.title("Update Profile")
@@ -471,30 +648,233 @@ def open_admin_UI() -> None:
         savebutton = tk.Button(update_win, text= "Save Changes", command= save_changes)
         savebutton.grid(row= 5, column= 0, columnspan= 2, padx= 5, pady= 5)
 
-    create_courses_button = tk.Button(admin_win, text= "Create Courses", command= createCourses)
+    # Create an Exam
+    def createExam() -> None:
+        exam_win = tk.Tk()
+        exam_win.title("Create Exams")
+        exam_win.state("zoomed")
+
+        examnamelabel = tk.Label(exam_win, text= "Name: ")
+        examnamelabel.grid(row= 0, column= 0, padx= 5, pady= 5)
+        examnameentry = tk.Entry(exam_win)
+        examnameentry.grid(row= 0, column= 1, padx= 5, pady= 5)
+
+        examschedulelabel = tk.Label(exam_win, text= "Schedule: ")
+        examschedulelabel.grid(row= 1, column= 0, padx= 5, pady= 5)
+        examscheduleentry = tk.Entry(exam_win)
+        examscheduleentry.grid(row= 1, column= 1, padx= 5, pady= 5)
+
+        examscheduleinfolabel = tk.Label(exam_win, text= "Format Dates: MM/DD/YYY \nExample: '09/20/2024'")
+        examscheduleinfolabel.grid(row= 1, column= 2, padx= 5, pady= 5)
+
+        courseIDlabel = tk.Label(exam_win, text= "CourseID: ")
+        courseIDlabel.grid(row= 2, column= 0, padx= 5, pady= 5)
+        courseIDentry = tk.Entry(exam_win)
+        courseIDentry.grid(row= 2, column= 1, padx= 5, pady= 5)
+
+        def save_changes() -> None:
+            examname = examnameentry.get()
+            examschedule = examscheduleentry.get()
+            courseID = courseIDentry.get()
+
+            conn = sqlite3.connect('Users.db')
+            curs = conn.cursor()
+
+            curs.execute("SELECT * FROM Exams WHERE CourseID=? AND Name=? AND Date=?",
+                         (courseID, examname, examschedule))
+            exam = curs.fetchone()
+            if exam:
+                messagebox.showerror("Error", "Exam already exists.")
+            else:
+                curs.execute("SELECT * FROM Courses WHERE CourseID=?",
+                             (courseID))
+                course = curs.fetchone()
+                if course:
+                    curs.execute("INSERT INTO Exams(CourseID, Name, Date) VALUES (?, ?, ?)",
+                             (courseID, examname, examschedule))
+                    conn.commit()
+                    messagebox.showinfo("Successful", "Exam added successfully.")
+                else:
+                    messagebox.showerror("Error", "Course does not exist")
+            
+            conn.close()
+            exam_win.destroy()
+            
+        savebutton = tk.Button(exam_win, text= "Save Changes", command= save_changes)
+        savebutton.grid(row= 3, column= 0, columnspan= 2, padx= 5, pady= 5)
+
+    # Update an exam's information
+    def updateExam() -> None:
+        exam_win = tk.Tk()
+        exam_win.title("Update Exam")
+        exam_win.state("zoomed")
+
+        examIDlabel = tk.Label(exam_win, text= "Exam ID: ")
+        examIDlabel.grid(row= 0, column= 0, padx= 5, pady= 5)
+        examIDentry = tk.Entry(exam_win)
+        examIDentry.grid(row= 0, column= 1, padx= 5, pady= 5)
+
+        examnamelabel = tk.Label(exam_win, text= "Exam Name: ")
+        examnamelabel.grid(row= 1, column= 0, padx= 5, pady= 5)
+        examnameentry = tk.Entry(exam_win)
+        examnameentry.grid(row= 1, column= 1, padx = 5, pady= 5)
+
+        examschedulelabel = tk.Label(exam_win, text= "Schedule: ")
+        examschedulelabel.grid(row= 2, column= 0, padx= 5, pady= 5)
+        examscheduleentry = tk.Entry(exam_win)
+        examscheduleentry.grid(row= 2, column= 1, padx= 5, pady= 5)
+
+        examscheduleinfolabel = tk.Label(exam_win, text= "Format Dates: MM/DD/YYY \nExample: '09/20/2024'")
+        examscheduleinfolabel.grid(row= 1, column= 2, padx= 5, pady= 5)
+
+        courseIDlabel = tk.Label(exam_win, text= "CourseID: ")
+        courseIDlabel.grid(row= 3, column= 0, padx= 5, pady= 5)
+        courseIDentry = tk.Entry(exam_win)
+        courseIDentry.grid(row= 3, column= 1, padx= 5, pady= 5)
+
+        def enter_info() -> None:
+            examID = examIDentry.get()
+            examname = examnameentry.get()
+            examschedule = examscheduleentry.get()
+            courseID = courseIDentry.get()
+
+            conn = sqlite3.connect('Users.db')
+            curs = conn.cursor()
+
+            curs.execute("SELECT * FROM Exams WHERE ExamID = ?", (examID,))
+            exam = curs.fetchone()
+            if exam:
+                curs.execute("SELECT * FROM Courses WHERE CourseID=?",
+                             (courseID))
+                course = curs.fetchone()
+                if course:
+                    curs.execute("Update Exams SET Name= ?, Date= ?, CourseID= ? WHERE ExamID= ?",
+                             (examname, examschedule, courseID, examID))
+                    conn.commit()
+                    conn.close()
+
+                    messagebox.showinfo("Successful Update", "Exam has been updated")
+
+                    exam_win.destroy()
+                else:
+                    messagebox.showerror("Failure", "Course was not found")
+
+                    exam_win.destroy()
+            else:
+                messagebox.showerror("Failure", "Exam was not found.")
+                exam_win.destroy()
+
+        exambutton = tk.Button(exam_win, text= "Choose Exam", command= enter_info)
+        exambutton.grid(row= 4, column= 0, columnspan= 2, padx= 5, pady= 5)
+
+    # Delete an Exam
+    def deleteExam() -> None:
+        delete_win = tk.Tk()
+        delete_win.title("Delete Exam")
+        delete_win.state("zoomed")
+
+        examIDlabel = tk.Label(delete_win, text= "Exam ID: ")
+        examIDlabel.grid(row= 0, column= 0, padx= 5, pady= 5)
+        examIDentry = tk.Entry(delete_win)
+        examIDentry.grid(row= 0, column= 1, padx= 5, pady= 5)
+
+        def save_changes() -> None:
+            examID = examIDentry.get()
+
+            conn = sqlite3.connect('Users.db')
+            curs = conn.cursor()
+
+            curs.execute("SELECT * FROM Exams WHERE ExamID = ?", (examID,))
+            exam = curs.fetchone()
+            
+            if exam:
+                curs.execute("DELETE FROM Exams WHERE ExamID = ?", (examID,))
+
+                conn.commit()
+                conn.close()
+
+                messagebox.showinfo("Successful", "Exam deleted successfully.")
+                delete_win.destroy()
+            else:
+                messagebox.showerror("Failure", "Exam not found.")
+                delete_win.destroy()
+
+        savebutton = tk.Button(delete_win, text= "Delete Exam", command= save_changes)
+        savebutton.grid(row= 3, column= 0, columnspan= 2, padx= 5, pady= 5)
+
+    # FRAMES
+    faculty_frame = tk.Frame(admin_win, bd=2, relief=tk.GROOVE)
+    faculty_frame.grid(row= 0, column= 0, padx= 2, pady= 2, sticky= "nsew")
+    faculty_title = tk.Label(faculty_frame, text= "Faculty")
+    faculty_title.pack()
+    
+    student_frame = tk.Frame(admin_win, bd=2, relief=tk.GROOVE)
+    student_frame.grid(row= 0, column= 1, padx= 2, pady= 2, sticky= "nsew")
+    student_title = tk.Label(student_frame, text= "Student")
+    student_title.pack()
+    
+    course_frame = tk.Frame(admin_win, bd=2, relief=tk.GROOVE)
+    course_frame.grid(row= 1, column= 0, padx= 2, pady= 2, sticky= "nsew")
+    course_title = tk.Label(course_frame, text= "Course")
+    course_title.pack()
+    
+    other_frame = tk.Frame(admin_win, bd=2, relief=tk.GROOVE)
+    other_frame.grid(row= 1, column= 1, padx= 2, pady= 2, sticky= "nsew")
+    other_title = tk.Label(other_frame, text= "Other")
+    other_title.pack()
+
+    admin_win.rowconfigure(0, weight=1)
+    admin_win.rowconfigure(1, weight=1)
+    admin_win.columnconfigure(0, weight=1)
+    admin_win.columnconfigure(1, weight=1)
+
+    # BUTTONS 
+    delete_student_button = tk.Button(student_frame, text= "Delete Student", command = deleteStudent)
+    delete_student_button.pack(pady= 10)
+    
+    create_courses_button = tk.Button(course_frame, text= "Create Courses", command= createCourses)
     create_courses_button.pack(pady= 10)
 
-    update_course_button = tk.Button(admin_win, text= "Update Course", command= updateCourse)
+    update_course_button = tk.Button(course_frame, text= "Update Course", command= updateCourse)
     update_course_button.pack(pady= 10)
 
-    delete_course_button = tk.Button(admin_win, text= "Delete Course", command= deleteCourse)
+    delete_course_button = tk.Button(course_frame, text= "Delete Course", command= deleteCourse)
     delete_course_button.pack(pady= 10)
     
-    add_student_to_course_button = tk.Button(admin_win, text= "Add Student to Course", command= addStudentCourse)
+    add_student_to_course_button = tk.Button(student_frame, text= "Add Student to Course", command= addStudentCourse)
     add_student_to_course_button.pack(pady= 10)
 
-    view_profile_button = tk.Button(admin_win, text= "View Student Information", command= view_student_profile)
+    delete_enrollment_button = tk.Button(other_frame, text= "Delete Enrollment", command= deleteEnrollment)
+    delete_enrollment_button.pack(pady= 10)
+
+    view_profile_button = tk.Button(student_frame, text= "View Student Information", command= view_student_profile)
     view_profile_button.pack(pady= 10)
 
-    update_Sprofile_button = tk.Button(admin_win, text= "Update Student Profile", command= update_student_profile)
+    update_Sprofile_button = tk.Button(student_frame, text= "Update Student Profile", command= update_student_profile)
     update_Sprofile_button.pack(pady= 10)
 
-    add_faculty_to_course_button = tk.Button(admin_win, text= "Add Faculty to Course", command= addFacultyCourse)
+    delete_faculty_button = tk.Button(faculty_frame, text= "Delete Faculty", command= deleteFaculty)
+    delete_faculty_button.pack(pady= 10)
+
+    add_faculty_to_course_button = tk.Button(faculty_frame, text= "Add Faculty to Course", command= addFacultyCourse)
     add_faculty_to_course_button.pack(pady= 10)
 
-    update_Fprofile_button = tk.Button(admin_win, text= "Update Faculty Profile", command= update_faculty_profile)
+    delete_faculty_course_button = tk.Button(other_frame, text= "Delete Faculty from Course", command= deleteCourseStaff)
+    delete_faculty_course_button.pack(pady= 10)
+
+    update_Fprofile_button = tk.Button(faculty_frame, text= "Update Faculty Profile", command= update_faculty_profile)
     update_Fprofile_button.pack(pady= 10)
-    
+
+    create_exam_button = tk.Button(other_frame, text= "Create Exams", command= createExam)
+    create_exam_button.pack(pady= 10)
+
+    update_exam_button = tk.Button(other_frame, text= "Update Exams", command= updateExam)
+    update_exam_button.pack(pady= 10)
+
+    delete_exam_button = tk.Button(other_frame, text= "Delete Exams", command= deleteExam)
+    delete_exam_button.pack(pady= 10)
+
+    admin_win.update()
     admin_win.mainloop()
     
 def open_faculty_UI() -> None:
@@ -562,7 +942,7 @@ def open_student_UI(username: str) -> None:
             # Get the student's ID based on their username
             curs.execute("SELECT UserID FROM Users WHERE Username = ?", (username,))
             studentID = curs.fetchone()[0]
-            student_grade = 100
+
             coursename = coursenameentry.get()
             courseschedule = coursescheduleentry.get()
 
@@ -576,11 +956,6 @@ def open_student_UI(username: str) -> None:
                 courseID = courseID[0]
                 curs.execute("INSERT INTO Enrollment(CourseID, StudentID) VALUES (?, ?)",
                              (courseID, studentID))
-
-                #inserts the default grade of 100
-                curs.execute("INSERT INTO Grades(CourseID, StudentID, student_grade) VALUES(?,?,?)",
-                             (courseID, studentID, student_grade))
-
                 conn.commit()
                 messagebox.showinfo("Successful", "Added to Course!")
 
