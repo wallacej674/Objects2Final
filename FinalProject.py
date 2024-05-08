@@ -1087,7 +1087,6 @@ def UserLogin() -> None:
 # MAIN GUI
 
 ###
-createTables()
 
 main_win = tk.Tk()
 main_win.title("User Login")
