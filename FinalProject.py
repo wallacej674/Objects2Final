@@ -1,17 +1,20 @@
 import tkinter as tk
 import sqlite3
+import threading
 from tkinter import Tk, messagebox, ttk
 
 ### Current Problems ###
 # UNCUSTOMIZED GUI
 # Role GUIs incomplete
-# Multithreading
+# Multithreading (Done with Admin)
 # Network Server and Client
 # Handle empty user inputs for updates to represent "do not update"
 # Use information from piratenet records to aid in creating the database.
 # Error Handling
 # Window Duplication (can't have multiple of the same window)
 
+# Global Variables
+file_lock = threading.Lock()
 
 # Purpose: Create the user database
 def createTables() -> None:
@@ -65,8 +68,7 @@ def createTables() -> None:
                 StudentID INTEGER,
                 student_grade FLOAT,
                 FOREIGN KEY (CourseID) REFERENCES Courses(CourseID),
-                FOREIGN KEY (StudentID) REFERENCES Students(StudentID),
-                FOREIGN KEY (FacultyID) REFERENCES Faculty(FacultyID))''')
+                FOREIGN KEY (StudentID) REFERENCES Students(StudentID))''')
     curs.execute(''' CREATE TABLE IF NOT EXISTS Exams
                 (ExamID INTEGER PRIMARY KEY AUTOINCREMENT, Name TEXT, Date TEXT, CourseID INTEGER,
                 FOREIGN KEY (CourseID) REFERENCES Courses(CourseID)
@@ -101,24 +103,30 @@ def open_admin_UI() -> None:
         def save_changes() -> None:
             studentID = studentIDentry.get()
 
-            conn = sqlite3.connect('Users.db')
-            curs = conn.cursor()
-            
-            curs.execute("SELECT * FROM Students WHERE StudentID= ?",
-                         (studentID,))
-            student = curs.fetchone()
-            if student:
-                curs.execute("DELETE FROM Enrollment WHERE StudentID = ?", (studentID, ))
-                curs.execute("DELETE FROM Students WHERE StudentID = ?", (studentID, ))
-                curs.execute("DELETE FROM Grades WHERE StudentID = ?", (studentID, ))
+            deletion_thread = threading.Thread(target=perform_deletion, args=(studentID,))
+            deletion_thread.start()
+            deletion_thread.join()
+                
+        def perform_deletion(studentID: str) -> None:
+            with file_lock:
+                conn = sqlite3.connect('Users.db')
+                curs = conn.cursor()
+                
+                curs.execute("SELECT * FROM Students WHERE StudentID= ?",
+                             (studentID,))
+                student = curs.fetchone()
+                if student:
+                    curs.execute("DELETE FROM Enrollment WHERE StudentID = ?", (studentID, ))
+                    curs.execute("DELETE FROM Students WHERE StudentID = ?", (studentID, ))
+                    curs.execute("DELETE FROM Grades WHERE StudentID = ?", (studentID, ))
 
-                conn.commit()
+                    conn.commit()
 
-                messagebox.showinfo("Success", "Student deleted successfully")
-                delete_win.destroy()
-            else:
-                messagebox.showerror("Failure", "Student not found.")
-                delete_win.destroy()
+                    messagebox.showinfo("Success", "Student deleted successfully")
+                    delete_win.destroy()
+                else:
+                    messagebox.showerror("Failure", "Student not found.")
+                    delete_win.destroy()
 
         savebutton = tk.Button(delete_win, text= "Delete Student", command= save_changes)
         savebutton.grid(row= 2, column= 0, columnspan= 2, padx= 5, pady= 5)
@@ -137,23 +145,29 @@ def open_admin_UI() -> None:
         def save_changes() -> None:
             facultyID = facultyIDentry.get()
 
-            conn = sqlite3.connect('Users.db')
-            curs = conn.cursor()
+            deletion_thread = threading.Thread(target=perform_deletion, args=(facultyID,))
+            deletion_thread.start()
+            deletion_thread.join()
             
-            curs.execute("SELECT * FROM Faculty WHERE FacultyID= ?",
-                         (facultyID,))
-            faculty = curs.fetchone()
-            if faculty:
-                curs.execute("DELETE FROM CourseStaff WHERE FacultyID = ?", (facultyID, ))
-                curs.execute("DELETE FROM Faculty WHERE FacultyID = ?", (facultyID, ))
+        def perform_deletion(facultyID: str) -> None:
+            with file_lock:
+                conn = sqlite3.connect('Users.db')
+                curs = conn.cursor()
+                
+                curs.execute("SELECT * FROM Faculty WHERE FacultyID= ?",
+                             (facultyID,))
+                faculty = curs.fetchone()
+                if faculty:
+                    curs.execute("DELETE FROM CourseStaff WHERE FacultyID = ?", (facultyID, ))
+                    curs.execute("DELETE FROM Faculty WHERE FacultyID = ?", (facultyID, ))
 
-                conn.commit()
+                    conn.commit()
 
-                messagebox.showinfo("Success", "Faculty deleted successfully")
-                delete_win.destroy()
-            else:
-                messagebox.showerror("Failure", "Faculty not found.")
-                delete_win.destroy()
+                    messagebox.showinfo("Success", "Faculty deleted successfully")
+                    delete_win.destroy()
+                else:
+                    messagebox.showerror("Failure", "Faculty not found.")
+                    delete_win.destroy()
 
         savebutton = tk.Button(delete_win, text= "Delete Faculty", command= save_changes)
         savebutton.grid(row= 2, column= 0, columnspan= 2, padx= 5, pady= 5)
@@ -187,32 +201,38 @@ def open_admin_UI() -> None:
             coursename = coursenameentry.get()
             courseschedule = coursescheduleentry.get()
 
-            conn = sqlite3.connect('Users.db')
-            curs = conn.cursor()
-            
-            curs.execute("SELECT CourseID FROM Courses WHERE CourseName= ? and Schedule= ?",
-                         (coursename, courseschedule))
-            courseID = curs.fetchone()
-            if courseID:
-                curs.execute("SELECT * FROM Students WHERE StudentID= ?",
-                             (studentID, ))
-                student = curs.fetchone()
-                if student:
-                    courseID = courseID[0]
-                    curs.execute("INSERT INTO Enrollment(CourseID, StudentID) VALUES (?, ?)",
-                                 (courseID, studentID))
-                    conn.commit()
-                    messagebox.showinfo("Successful", "Student added to Course")
+            add_thread = threading.Thread(target=perform_add, args=(studentID, coursename, courseschedule))
+            add_thread.start()
+            add_thread.join()
 
-                    conn.close()
-                    add_win.destroy()
+        def perform_add(studentID: str, coursename: str, courseschedule: str) -> None:
+            with file_lock:
+                conn = sqlite3.connect('Users.db')
+                curs = conn.cursor()
+                
+                curs.execute("SELECT CourseID FROM Courses WHERE CourseName= ? and Schedule= ?",
+                             (coursename, courseschedule))
+                courseID = curs.fetchone()
+                if courseID:
+                    curs.execute("SELECT * FROM Students WHERE StudentID= ?",
+                                 (studentID, ))
+                    student = curs.fetchone()
+                    if student:
+                        courseID = courseID[0]
+                        curs.execute("INSERT INTO Enrollment(CourseID, StudentID) VALUES (?, ?)",
+                                     (courseID, studentID))
+                        conn.commit()
+                        messagebox.showinfo("Successful", "Student added to Course")
+
+                        conn.close()
+                        add_win.destroy()
+                    else:
+                        messagebox.showerror("Failure", "Student does not exist")
+                        add_win.destroy()
                 else:
-                    messagebox.showerror("Failure", "Student does not exist")
-                    add_win.destroy()
-            else:
-                messagebox.showerror("Failure", "Course does not exist")
+                    messagebox.showerror("Failure", "Course does not exist")
 
-                add_win.destroy()
+                    add_win.destroy()
 
         addbutton = tk.Button(add_win, text= "Add Student", command= save_changes)
         addbutton.grid(row= 3, column= 0, columnspan= 2, padx= 5, pady= 5)
@@ -237,23 +257,29 @@ def open_admin_UI() -> None:
             courseID = courseIDentry.get()
             studentID = studentIDentry.get()
 
-            conn = sqlite3.connect('Users.db')
-            curs = conn.cursor()
+            deletion_thread = threading.Thread(target=perform_deletion, args=(studentID, courseID))
+            deletion_thread.start()
+            deletion_thread.join()
 
-            curs.execute("SELECT * FROM Enrollment WHERE CourseID = ? AND StudentID = ?", (courseID, studentID))
-            enrollment = curs.fetchone()
-            
-            if enrollment:
-                curs.execute("DELETE FROM Enrollment WHERE CourseID= ? AND StudentID = ?", (courseID, studentID))
+        def perform_deletion(studentID: str, courseID: str) -> None:
+            with file_lock:
+                conn = sqlite3.connect('Users.db')
+                curs = conn.cursor()
 
-                conn.commit()
-                conn.close()
+                curs.execute("SELECT * FROM Enrollment WHERE CourseID = ? AND StudentID = ?", (courseID, studentID))
+                enrollment = curs.fetchone()
+                
+                if enrollment:
+                    curs.execute("DELETE FROM Enrollment WHERE CourseID= ? AND StudentID = ?", (courseID, studentID))
 
-                messagebox.showinfo("Successful", "Enrollment deleted successfully.")
-                delete_win.destroy()
-            else:
-                messagebox.showerror("Failure", "Enrollment not found.")
-                delete_win.destroy()
+                    conn.commit()
+                    conn.close()
+
+                    messagebox.showinfo("Successful", "Enrollment deleted successfully.")
+                    delete_win.destroy()
+                else:
+                    messagebox.showerror("Failure", "Enrollment not found.")
+                    delete_win.destroy()
 
         savebutton = tk.Button(delete_win, text= "Delete Enrollment", command= save_changes)
         savebutton.grid(row= 2, column= 0, columnspan= 2, padx= 5, pady= 5)
@@ -281,22 +307,28 @@ def open_admin_UI() -> None:
             newname = coursenameentry.get()
             newschedule = coursescheduleentry.get()
 
-            conn = sqlite3.connect('Users.db')
-            curs = conn.cursor()
+            create_thread = threading.Thread(target=perform_creation, args= (newname, newschedule))
+            create_thread.start()
+            create_thread.join()
 
-            curs.execute("SELECT * FROM Courses WHERE CourseName=? AND Schedule=?",
-                         (newname, newschedule))
-            course = curs.fetchone()
-            if course:
-                messagebox.showerror("Error", "Course already exists.")
-            else:
-                curs.execute("INSERT INTO Courses(CourseName, Schedule) VALUES (?, ?)",
+        def perform_creation(newname: str, newschedule: str) -> None:
+            with file_lock:
+                conn = sqlite3.connect('Users.db')
+                curs = conn.cursor()
+
+                curs.execute("SELECT * FROM Courses WHERE CourseName=? AND Schedule=?",
                              (newname, newschedule))
-                conn.commit()
-                messagebox.showinfo("Successful", "Course added successfully.")
-            
-            conn.close()
-            course_win.destroy()
+                course = curs.fetchone()
+                if course:
+                    messagebox.showerror("Error", "Course already exists.")
+                else:
+                    curs.execute("INSERT INTO Courses(CourseName, Schedule) VALUES (?, ?)",
+                                 (newname, newschedule))
+                    conn.commit()
+                    messagebox.showinfo("Successful", "Course added successfully.")
+                
+                conn.close()
+                course_win.destroy()
             
         savebutton = tk.Button(course_win, text= "Save Changes", command= save_changes)
         savebutton.grid(row= 2, column= 0, columnspan= 2, padx= 5, pady= 5)
@@ -330,22 +362,28 @@ def open_admin_UI() -> None:
             newname = coursenameentry.get()
             newschedule = scheduleentry.get()
 
-            conn = sqlite3.connect('Users.db')
-            curs = conn.cursor()
+            update_thread = threading.Thread(target=perform_update, args= (CourseID, newname, newschedule))
+            update_thread.start()
+            update_thread.join()
+            
+        def perform_update(CourseID: str, newname: str, newschedule: str) -> None:
+            with file_lock:
+                conn = sqlite3.connect('Users.db')
+                curs = conn.cursor()
 
-            curs.execute("SELECT * FROM Courses WHERE CourseID= ?",
-                         (CourseID))
-            course = curs.fetchone()
-            if course:
-                curs.execute("UPDATE Courses SET CourseName = ?, Schedule= ? WHERE CourseID= ?",
-                             (newname, newschedule, CourseID))
-                conn.commit()
-                messagebox.showinfo("Successful", "Course updated successfully.")
-            else:
-                messagebox.showerror("Failure", "Course does not exist.")
-                
-            conn.close()
-            update_win.destroy()
+                curs.execute("SELECT * FROM Courses WHERE CourseID= ?",
+                             (CourseID))
+                course = curs.fetchone()
+                if course:
+                    curs.execute("UPDATE Courses SET CourseName = ?, Schedule= ? WHERE CourseID= ?",
+                                 (newname, newschedule, CourseID))
+                    conn.commit()
+                    messagebox.showinfo("Successful", "Course updated successfully.")
+                else:
+                    messagebox.showerror("Failure", "Course does not exist.")
+                    
+                conn.close()
+                update_win.destroy()
 
         savebutton = tk.Button(update_win, text= "Save Changes", command= save_changes)
         savebutton.grid(row= 3, column= 0, columnspan= 2, padx= 5, pady= 5)
@@ -363,26 +401,31 @@ def open_admin_UI() -> None:
 
         def save_changes() -> None:
             courseID = courseIDentry.get()
+            deletion_thread = threading.Thread(target=perform_deletion, args=(courseID, ))
+            deletion_thread.start()
+            deletion_thread.join()
 
-            conn = sqlite3.connect('Users.db')
-            curs = conn.cursor()
+        def perform_deletion(courseID: str) -> None:
+            with file_lock:
+                conn = sqlite3.connect('Users.db')
+                curs = conn.cursor()
 
-            curs.execute("SELECT * FROM Courses WHERE CourseID = ?", (courseID,))
-            course = curs.fetchone()
-            
-            if course:
-                curs.execute("DELETE FROM Courses WHERE CourseID = ?", (courseID,))
-                curs.execute("DELETE FROM Enrollment WHERE CourseID = ?", (courseID,))
-                curs.execute("DELETE FROM CourseStaff WHERE CourseID = ?", (courseID,))
+                curs.execute("SELECT * FROM Courses WHERE CourseID = ?", (courseID,))
+                course = curs.fetchone()
+                
+                if course:
+                    curs.execute("DELETE FROM Courses WHERE CourseID = ?", (courseID,))
+                    curs.execute("DELETE FROM Enrollment WHERE CourseID = ?", (courseID,))
+                    curs.execute("DELETE FROM CourseStaff WHERE CourseID = ?", (courseID,))
 
-                conn.commit()
-                conn.close()
+                    conn.commit()
+                    conn.close()
 
-                messagebox.showinfo("Successful", "Course deleted successfully.")
-                delete_win.destroy()
-            else:
-                messagebox.showerror("Failure", "Course not found.")
-                delete_win.destroy()
+                    messagebox.showinfo("Successful", "Course deleted successfully.")
+                    delete_win.destroy()
+                else:
+                    messagebox.showerror("Failure", "Course not found.")
+                    delete_win.destroy()
 
         savebutton = tk.Button(delete_win, text= "Delete Course", command= save_changes)
         savebutton.grid(row= 3, column= 0, columnspan= 2, padx= 5, pady= 5)
@@ -401,25 +444,31 @@ def open_admin_UI() -> None:
         def view_information() -> None:
             studentID = studentIDentry.get()
 
-            conn = sqlite3.connect('Users.db')
-            curs = conn.cursor()
+            deletion_thread = threading.Thread(target=perform_view, args=(studentID,))
+            deletion_thread.start()
+            deletion_thread.join()
+            
+        def perform_view(studentID: str) -> None:
+            with file_lock:
+                conn = sqlite3.connect('Users.db')
+                curs = conn.cursor()
 
-            curs.execute("SELECT * FROM Students WHERE StudentID = ?", (studentID,))
-            student = curs.fetchone()
+                curs.execute("SELECT * FROM Students WHERE StudentID = ?", (studentID,))
+                student = curs.fetchone()
 
-            if student:
-                info_win = tk.Toplevel(view_win)
-                info_win.title("Student Profile")
-                
-                infolabel = tk.Label(info_win, text=f"Phone: {student[1]} \n Email: {student[2]} \n Name: {student[3]}")
-                infolabel.grid(row= 0, column= 0, padx= 5, pady= 5)
+                if student:
+                    info_win = tk.Toplevel(view_win)
+                    info_win.title("Student Profile")
+                    
+                    infolabel = tk.Label(info_win, text=f"Phone: {student[1]} \n Email: {student[2]} \n Name: {student[3]}")
+                    infolabel.grid(row= 0, column= 0, padx= 5, pady= 5)
 
-                academiclabel = tk.Label(info_win, text=f"Grade: {student[4]} \n Graduation Year: {student[5]}")
-                academiclabel.grid(row= 0, column= 1,  padx= 5, pady= 5)
+                    academiclabel = tk.Label(info_win, text=f"Grade: {student[4]} \n Graduation Year: {student[5]}")
+                    academiclabel.grid(row= 0, column= 1,  padx= 5, pady= 5)
 
-                conn.close()
-            else:
-                messagebox.showerror("Failure", "Student was not found.")
+                    conn.close()
+                else:
+                    messagebox.showerror("Failure", "Student was not found.")
                 
         viewbutton = tk.Button(view_win, text= "View Profile", command= view_information)
         viewbutton.grid(row= 1, column= 0, columnspan= 2, padx= 5, pady= 5)
@@ -468,23 +517,29 @@ def open_admin_UI() -> None:
             newgrade = gradeentry.get()
             newyear = yearentry.get()
 
-            conn = sqlite3.connect('Users.db')
-            curs = conn.cursor()
+            update_thread = threading.Thread(target=perform_update, args=(studentID, newphone, newemail, newname, newgrade, newyear))
+            update_thread.start()
+            update_thread.join()
 
-            curs.execute("SELECT * FROM Students WHERE StudentID = ?", (studentID,))
-            student = curs.fetchone()
-            if student:
-                curs.execute("Update Students SET Phone= ?, Email= ?, Name= ?, Grade= ?, Graduation= ? WHERE StudentID= ?",
-                             (newphone, newemail, newname, newgrade, newyear, studentID))
-                conn.commit()
-                conn.close()
+        def perform_update(studentID: str, newphone: str, newemail: str, newname: str, newgrade: str, newyear: str) -> None:
+            with file_lock:
+                conn = sqlite3.connect('Users.db')
+                curs = conn.cursor()
 
-                messagebox.showinfo("Successful Update", "Student's Personal Information has been updated")
+                curs.execute("SELECT * FROM Students WHERE StudentID = ?", (studentID,))
+                student = curs.fetchone()
+                if student:
+                    curs.execute("Update Students SET Phone= ?, Email= ?, Name= ?, Grade= ?, Graduation= ? WHERE StudentID= ?",
+                                 (newphone, newemail, newname, newgrade, newyear, studentID))
+                    conn.commit()
+                    conn.close()
 
-                update_win.destroy()
-            else:
-                messagebox.showerror("Failure", "Student was not found.")
-                update_win.destroy()
+                    messagebox.showinfo("Successful Update", "Student's Personal Information has been updated")
+
+                    update_win.destroy()
+                else:
+                    messagebox.showerror("Failure", "Student was not found.")
+                    update_win.destroy()
 
         savebutton = tk.Button(update_win, text= "Save Changes", command= save_changes)
         savebutton.grid(row= 6, column= 0, columnspan= 2, padx= 5, pady= 5)
@@ -518,31 +573,35 @@ def open_admin_UI() -> None:
             coursename = coursenameentry.get()
             courseschedule = coursescheduleentry.get()
 
-            conn = sqlite3.connect('Users.db')
-            curs = conn.cursor()
-            
-            curs.execute("SELECT CourseID FROM Courses WHERE CourseName= ? and Schedule= ?",
-                         (coursename, courseschedule))
-            courseID = curs.fetchone()
-            if courseID:
-                curs.execute("SELECT * FROM Faculty WHERE FacultyID= ?", (facultyID, ))
-                faculty = curs.fetchone()
-                if faculty:
-                    courseID = courseID[0]
-                    curs.execute("INSERT INTO CourseStaff(CourseID, FacultyID) VALUES (?, ?)",
-                             (courseID, facultyID))
+            add_thread = threading.Thread(target=perform_add, args=(facultyID, coursename, courseschedule))
+            add_thread.start()
+            add_thread.join()
 
-                    conn.commit()
-                    messagebox.showinfo("Successful", "Faculty added to Course")
+        def perform_add(facultyID: str, coursename: str, courseschedule: str) -> None:
+            with file_lock:
+                conn = sqlite3.connect('Users.db')
+                curs = conn.cursor()
+                
+                curs.execute("SELECT CourseID FROM Courses WHERE CourseName= ? and Schedule= ?",
+                             (coursename, courseschedule))
+                courseID = curs.fetchone()
+                if courseID:
+                    curs.execute("SELECT * FROM Faculty WHERE FacultyID= ?", (facultyID, ))
+                    faculty = curs.fetchone()
+                    if faculty:
+                        courseID = courseID[0]
+                        curs.execute("INSERT INTO CourseStaff(CourseID, FacultyID) VALUES (?, ?)", (courseID, facultyID))
+                        conn.commit()
+                        messagebox.showinfo("Successful", "Faculty added to Course")
 
+                        conn.close()
+                        add_win.destroy()
+                    else:
+                        messagebox.showerror("Failure", "Faculty does not exist")
+                        add_win.destroy()
                 else:
-                    messagebox.showerror("Failure", "Faculty does not exist")
-
-                conn.close()
-                add_win.destroy()
-            else:
-                messagebox.showerror("Failure", "Course does not exist")
-                add_win.destroy()
+                    messagebox.showerror("Failure", "Course does not exist")
+                    add_win.destroy()
 
         addbutton = tk.Button(add_win, text= "Add Student", command= save_changes)
         addbutton.grid(row= 3, column= 0, columnspan= 2, padx= 5, pady= 5)
@@ -567,29 +626,35 @@ def open_admin_UI() -> None:
             courseID = courseIDentry.get()
             facultyID = facultyIDentry.get()
 
-            conn = sqlite3.connect('Users.db')
-            curs = conn.cursor()
+            deletion_thread = threading.Thread(target=perform_deletion, args=(courseID, facultyID))
+            deletion_thread.start()
+            deletion_thread.join()
 
-            curs.execute("SELECT * FROM Courses WHERE CourseID = ?", (courseID,))
-            course = curs.fetchone()
-            
-            if course:
-                curs.execute("SELECT * FROM Faculty WHERE FacultyID= ?", (facultyID, ))
-                faculty = curs.fetchone()
-                if faculty:
-                    curs.execute("DELETE FROM CourseStaff WHERE CourseID= ? AND FacultyID= ?", (courseID, facultyID))
+        def perform_deletion(courseID: str, facultyID: str) -> None:
+            with file_lock:
+                conn = sqlite3.connect('Users.db')
+                curs = conn.cursor()
 
-                    conn.commit()
-                    conn.close()
+                curs.execute("SELECT * FROM Courses WHERE CourseID = ?", (courseID,))
+                course = curs.fetchone()
+                
+                if course:
+                    curs.execute("SELECT * FROM Faculty WHERE FacultyID= ?", (facultyID, ))
+                    faculty = curs.fetchone()
+                    if faculty:
+                        curs.execute("DELETE FROM CourseStaff WHERE CourseID= ? AND FacultyID= ?", (courseID, facultyID))
 
-                    messagebox.showinfo("Successful", "Faculty has been deleted successfully from course.")
-                    delete_win.destroy()
+                        conn.commit()
+                        conn.close()
+
+                        messagebox.showinfo("Successful", "Faculty has been deleted successfully from course.")
+                        delete_win.destroy()
+                    else:
+                        messagebox.showerror("Failure", "Faculty not found.")
+                        delete_win.destroy()
                 else:
-                    messagebox.showerror("Failure", "Faculty not found.")
+                    messagebox.showerror("Failure", "Course not found.")
                     delete_win.destroy()
-            else:
-                messagebox.showerror("Failure", "Course not found.")
-                delete_win.destroy()
 
         savebutton = tk.Button(delete_win, text= "Delete Course", command= save_changes)
         savebutton.grid(row= 2, column= 0, columnspan= 2, padx= 5, pady= 5)
@@ -632,23 +697,29 @@ def open_admin_UI() -> None:
             newname = nameentry.get()
             newqual = qualentry.get()
 
-            conn = sqlite3.connect('Users.db')
-            curs = conn.cursor()
+            update_thread = threading.Thread(target=perform_update, args=(facultyID, newphone, newemail, newname, newqual))
+            update_thread.start()
+            update_thread.join()
 
-            curs.execute("SELECT * FROM Faculty WHERE FacultyID = ?", (facultyID,))
-            staff = curs.fetchone()
-            if staff:
-                curs.execute("Update Faculty SET Phone= ?, Email= ?, Name= ?, Qualifications= ? WHERE FacultyID= ?",
-                             (newphone, newemail, newname, newqual, facultyID))
-                conn.commit()
-                conn.close()
+        def perform_update(facultyID: str, newphone: str, newemail: str, newname: str, newqual: str) -> None:
+            with file_lock:
+                conn = sqlite3.connect('Users.db')
+                curs = conn.cursor()
 
-                messagebox.showinfo("Successful Update", "Faculty's Personal Information has been updated")
+                curs.execute("SELECT * FROM Faculty WHERE FacultyID = ?", (facultyID,))
+                staff = curs.fetchone()
+                if staff:
+                    curs.execute("Update Faculty SET Phone= ?, Email= ?, Name= ?, Qualifications= ? WHERE FacultyID= ?",
+                                 (newphone, newemail, newname, newqual, facultyID))
+                    conn.commit()
+                    conn.close()
 
-                update_win.destroy()
-            else:
-                messagebox.showerror("Failure", "Faculty was not found.")
-                update_win.destroy()
+                    messagebox.showinfo("Successful Update", "Faculty's Personal Information has been updated")
+
+                    update_win.destroy()
+                else:
+                    messagebox.showerror("Failure", "Faculty was not found.")
+                    update_win.destroy()
 
         savebutton = tk.Button(update_win, text= "Save Changes", command= save_changes)
         savebutton.grid(row= 5, column= 0, columnspan= 2, padx= 5, pady= 5)
@@ -682,28 +753,34 @@ def open_admin_UI() -> None:
             examschedule = examscheduleentry.get()
             courseID = courseIDentry.get()
 
-            conn = sqlite3.connect('Users.db')
-            curs = conn.cursor()
+            create_thread = threading.Thread(target=perform_creation, args=(examname, examschedule, courseID))
+            create_thread.start()
+            create_thread.join()
 
-            curs.execute("SELECT * FROM Exams WHERE CourseID=? AND Name=? AND Date=?",
-                         (courseID, examname, examschedule))
-            exam = curs.fetchone()
-            if exam:
-                messagebox.showerror("Error", "Exam already exists.")
-            else:
-                curs.execute("SELECT * FROM Courses WHERE CourseID=?",
-                             (courseID))
-                course = curs.fetchone()
-                if course:
-                    curs.execute("INSERT INTO Exams(CourseID, Name, Date) VALUES (?, ?, ?)",
+        def perform_creation(examname: str, examschedule: str, courseID: str) -> None:
+            with file_lock:
+                conn = sqlite3.connect('Users.db')
+                curs = conn.cursor()
+
+                curs.execute("SELECT * FROM Exams WHERE CourseID=? AND Name=? AND Date=?",
                              (courseID, examname, examschedule))
-                    conn.commit()
-                    messagebox.showinfo("Successful", "Exam added successfully.")
+                exam = curs.fetchone()
+                if exam:
+                    messagebox.showerror("Error", "Exam already exists.")
                 else:
-                    messagebox.showerror("Error", "Course does not exist")
+                    curs.execute("SELECT * FROM Courses WHERE CourseID=?",
+                                 (courseID))
+                    course = curs.fetchone()
+                    if course:
+                        curs.execute("INSERT INTO Exams(CourseID, Name, Date) VALUES (?, ?, ?)",
+                                 (courseID, examname, examschedule))
+                        conn.commit()
+                        messagebox.showinfo("Successful", "Exam added successfully.")
+                    else:
+                        messagebox.showerror("Error", "Course does not exist")
             
-            conn.close()
-            exam_win.destroy()
+                conn.close()
+                exam_win.destroy()
             
         savebutton = tk.Button(exam_win, text= "Save Changes", command= save_changes)
         savebutton.grid(row= 3, column= 0, columnspan= 2, padx= 5, pady= 5)
@@ -743,31 +820,37 @@ def open_admin_UI() -> None:
             examschedule = examscheduleentry.get()
             courseID = courseIDentry.get()
 
-            conn = sqlite3.connect('Users.db')
-            curs = conn.cursor()
+            update_thread = threading.Thread(target=perform_update, args=(examID, examname, examschedule, courseID))
+            update_thread.start()
+            update_thread.join()
 
-            curs.execute("SELECT * FROM Exams WHERE ExamID = ?", (examID,))
-            exam = curs.fetchone()
-            if exam:
-                curs.execute("SELECT * FROM Courses WHERE CourseID=?",
-                             (courseID))
-                course = curs.fetchone()
-                if course:
-                    curs.execute("Update Exams SET Name= ?, Date= ?, CourseID= ? WHERE ExamID= ?",
-                             (examname, examschedule, courseID, examID))
-                    conn.commit()
-                    conn.close()
+        def perform_update(examID: str, examname: str, examschedule: str, courseID: str) -> None:
+            with file_lock:
+                conn = sqlite3.connect('Users.db')
+                curs = conn.cursor()
 
-                    messagebox.showinfo("Successful Update", "Exam has been updated")
+                curs.execute("SELECT * FROM Exams WHERE ExamID = ?", (examID,))
+                exam = curs.fetchone()
+                if exam:
+                    curs.execute("SELECT * FROM Courses WHERE CourseID=?",
+                                 (courseID))
+                    course = curs.fetchone()
+                    if course:
+                        curs.execute("Update Exams SET Name= ?, Date= ?, CourseID= ? WHERE ExamID= ?",
+                                 (examname, examschedule, courseID, examID))
+                        conn.commit()
+                        conn.close()
 
-                    exam_win.destroy()
+                        messagebox.showinfo("Successful Update", "Exam has been updated")
+
+                        exam_win.destroy()
+                    else:
+                        messagebox.showerror("Failure", "Course was not found")
+
+                        exam_win.destroy()
                 else:
-                    messagebox.showerror("Failure", "Course was not found")
-
+                    messagebox.showerror("Failure", "Exam was not found.")
                     exam_win.destroy()
-            else:
-                messagebox.showerror("Failure", "Exam was not found.")
-                exam_win.destroy()
 
         exambutton = tk.Button(exam_win, text= "Choose Exam", command= enter_info)
         exambutton.grid(row= 4, column= 0, columnspan= 2, padx= 5, pady= 5)
@@ -786,23 +869,29 @@ def open_admin_UI() -> None:
         def save_changes() -> None:
             examID = examIDentry.get()
 
-            conn = sqlite3.connect('Users.db')
-            curs = conn.cursor()
+            deletion_thread = threading.Thread(target=perform_deletion, args=(examID, ))
+            deletion_thread.start()
+            deletion_thread.join()
 
-            curs.execute("SELECT * FROM Exams WHERE ExamID = ?", (examID,))
-            exam = curs.fetchone()
-            
-            if exam:
-                curs.execute("DELETE FROM Exams WHERE ExamID = ?", (examID,))
+        def perform_deletion(examID: str) -> None:
+            with file_lock:
+                conn = sqlite3.connect('Users.db')
+                curs = conn.cursor()
 
-                conn.commit()
-                conn.close()
+                curs.execute("SELECT * FROM Exams WHERE ExamID = ?", (examID,))
+                exam = curs.fetchone()
+                
+                if exam:
+                    curs.execute("DELETE FROM Exams WHERE ExamID = ?", (examID,))
 
-                messagebox.showinfo("Successful", "Exam deleted successfully.")
-                delete_win.destroy()
-            else:
-                messagebox.showerror("Failure", "Exam not found.")
-                delete_win.destroy()
+                    conn.commit()
+                    conn.close()
+
+                    messagebox.showinfo("Successful", "Exam deleted successfully.")
+                    delete_win.destroy()
+                else:
+                    messagebox.showerror("Failure", "Exam not found.")
+                    delete_win.destroy()
 
         savebutton = tk.Button(delete_win, text= "Delete Exam", command= save_changes)
         savebutton.grid(row= 3, column= 0, columnspan= 2, padx= 5, pady= 5)
@@ -961,10 +1050,8 @@ def open_student_UI(username: str) -> None:
                 courseID = courseID[0]
                 curs.execute("INSERT INTO Enrollment(CourseID, StudentID) VALUES (?, ?)",
                              (courseID, studentID))
-
                 curs.execute("INSERT INTO Grades(CourseID, StudentID, student_grade) VALUES(?,?,?)",
                              (courseID, studentID, 100.0))
-
                 conn.commit()
                 messagebox.showinfo("Successful", "Added to Course!")
 
@@ -1132,6 +1219,3 @@ login_button = tk.Button(main_win, text= "Login", command= UserLogin)
 login_button.grid(row= 3, column= 2, padx= 5, pady= 5)
 
 main_win.mainloop()
-
-
-#if __name__ == "__main__":
