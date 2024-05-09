@@ -1,7 +1,7 @@
 import tkinter as tk
 import sqlite3
 import threading
-from tkinter import Tk, messagebox, ttk
+from tkinter import Tk, messagebox, ttk, filedialog
 
 ### Current Problems ###
 # UNCUSTOMIZED GUI
@@ -84,7 +84,7 @@ def createTables() -> None:
                 Score REAL DEFAULT -1,
                 Submitted BOOLEAN,
     FOREIGN KEY(StudentID) REFERENCES Users(UserID),
-    FOREIGN KEY(CourseID) REFERENCES Courses(CourseID)
+    FOREIGN KEY(CourseID) REFERENCES Courses(CourseID))
     ''')
     conn.commit()
     conn.close()
@@ -1156,6 +1156,34 @@ def open_student_UI(username: str) -> None:
             tk.Radiobutton(submit_win, text=assignment_name, variable=assignment_var, value=assignment_id).pack()
 
 
+        assignment_var = tk.StringVar()
+        assignment_var.set(assignments[0][0])  # Default to the first assignment
+
+        for assignment_id, assignment_name in assignments:
+            tk.Radiobutton(submit_win, text=assignment_name, variable=assignment_var, value=assignment_id).pack()
+
+        def upload_file():
+            conn = sqlite3.connect('Users.db')
+            curs = conn.cursor()
+
+            file_path = filedialog.askopenfilename()
+            if file_path:
+                # Logic to handle the file upload
+                # For example, you might copy the file to a specific directory
+                # and store the path in the database
+
+                # Update the database with the file path
+                selected_assignment_id = assignment_var.get()
+                curs.execute("UPDATE Assignments SET Submitted = ?, FilePath = ? WHERE AssignmentID = ?",
+                            (1, file_path, selected_assignment_id))
+                conn.commit()
+                messagebox.showinfo("Success", "File uploaded successfully!")
+                submit_win.destroy()
+
+        upload_button = tk.Button(submit_win, text="Upload File", command=upload_file)
+        upload_button.pack(pady=10)
+
+
     def view_grades():
         conn = sqlite3.connect('Users.db')
         curs = conn.cursor()
@@ -1275,7 +1303,7 @@ def UserLogin() -> None:
 ###
 
 # MAIN GUI
-
+createTables()
 ###
 
 main_win = tk.Tk()
