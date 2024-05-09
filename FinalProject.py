@@ -120,7 +120,7 @@ def open_admin_UI() -> None:
         global delete_student_win
     
         if delete_student_win is None or not delete_student_win.winfo_exists():
-            delete_student_win = tk.Tk()
+            delete_student_win = tk.Toplevel()
             delete_student_win.title("Delete Student")
             delete_student_win.state("zoomed")
 
@@ -171,7 +171,7 @@ def open_admin_UI() -> None:
         global delete_faculty_win
     
         if delete_faculty_win is None or not delete_faculty_win.winfo_exists():
-            delete_faculty_win = tk.Tk()
+            delete_faculty_win = tk.Toplevel()
             delete_faculty_win.title("Delete Faculty")
             delete_faculty_win.state("zoomed")
 
@@ -221,7 +221,7 @@ def open_admin_UI() -> None:
         global add_enrollment_win
 
         if add_enrollment_win is None or not add_enrollment_win.winfo_exists():
-            add_enrollment_win = tk.Tk()
+            add_enrollment_win = tk.Toplevel()
             add_enrollment_win.title("Add Student to Course")
             add_enrollment_win.state("zoomed")
 
@@ -269,6 +269,8 @@ def open_admin_UI() -> None:
                                 courseID = courseID[0]
                                 curs.execute("INSERT INTO Enrollment(CourseID, StudentID) VALUES (?, ?)",
                                              (courseID, studentID))
+                                curs.execute("INSERT INTO Grades(CourseID, StudentID, student_grade) VALUES(?,?,?)",
+                                             (courseID, studentID, 100.0))
                                 conn.commit()
                                 conn.close()
                                 messagebox.showinfo("Successful", "Student added to Course")
@@ -292,7 +294,7 @@ def open_admin_UI() -> None:
         global delete_enrollment_win
 
         if delete_enrollment_win is None or not delete_enrollment_win.winfo_exists():
-            delete_enrollment_win = tk.Tk()
+            delete_enrollment_win = tk.Toplevel()
             delete_enrollment_win.title("Delete Enrollment")
             delete_enrollment_win.state("zoomed")
 
@@ -348,7 +350,7 @@ def open_admin_UI() -> None:
         global course_creation_win
 
         if course_creation_win is None or not course_creation_win.winfo_exists():
-            course_creation_win = tk.Tk()
+            course_creation_win = tk.Toplevel()
             course_creation_win.title("Create Courses")
             course_creation_win.state("zoomed")
 
@@ -407,7 +409,7 @@ def open_admin_UI() -> None:
         global update_course_win
 
         if update_course_win is None or not update_course_win.winfo_exists():
-            update_course_win = tk.Tk()
+            update_course_win = tk.Toplevel()
             update_course_win.title("Update Course")
             update_course_win.state("zoomed")
 
@@ -472,7 +474,7 @@ def open_admin_UI() -> None:
         global delete_course_win
 
         if delete_course_win is None or not delete_course_win.winfo_exists():
-            delete_course_win = tk.Tk()
+            delete_course_win = tk.Toplevel()
             delete_course_win.title("Delete Course")
             delete_course_win.state("zoomed")
 
@@ -523,7 +525,7 @@ def open_admin_UI() -> None:
         global view_student_win
 
         if view_student_win is None or not view_student_win.winfo_exists():
-            view_student_win = tk.Tk()
+            view_student_win = tk.Toplevel()
             view_student_win.title("View Profile")
             view_student_win.state("zoomed")
 
@@ -578,7 +580,7 @@ def open_admin_UI() -> None:
         global update_student_win
 
         if update_student_win is None or not update_student_win.winfo_exists():
-            update_student_win = tk.Tk()
+            update_student_win = tk.Toplevel()
             update_student_win.title("Update Profile")
             update_student_win.state("zoomed")
 
@@ -657,7 +659,7 @@ def open_admin_UI() -> None:
         global add_courseStaff_win
 
         if add_courseStaff_win is None or not add_courseStaff_win.winfo_exists():
-            add_courseStaff_win = tk.Tk()
+            add_courseStaff_win = tk.Toplevel()
             add_courseStaff_win.title("Add Faculty to Course")
             add_courseStaff_win.state("zoomed")
 
@@ -727,7 +729,7 @@ def open_admin_UI() -> None:
         global delete_CourseStaff_win
 
         if delete_CourseStaff_win is None or not delete_CourseStaff_win.winfo_exists():
-            delete_CourseStaff_win = tk.Tk()
+            delete_CourseStaff_win = tk.Toplevel()
             delete_CourseStaff_win.title("Delete Staff from Course")
             delete_CourseStaff_win.state("zoomed")
 
@@ -788,7 +790,7 @@ def open_admin_UI() -> None:
         global update_faculty_win
 
         if update_faculty_win is None or not update_faculty_win.winfo_exists():
-            update_faculty_win = tk.Tk()
+            update_faculty_win = tk.Toplevel()
             update_faculty_win.title("Update Profile")
             update_faculty_win.state("zoomed")
 
@@ -861,7 +863,7 @@ def open_admin_UI() -> None:
         global exam_creation_win
 
         if exam_creation_win is None or not exam_creation_win.winfo_exists():
-            exam_creation_win = tk.Tk()
+            exam_creation_win = tk.Toplevel()
             exam_creation_win.title("Create Exams")
             exam_creation_win.state("zoomed")
 
@@ -931,7 +933,7 @@ def open_admin_UI() -> None:
         global exam_update_win
 
         if exam_update_win is None or not exam_update_win.winfo_exists():
-            exam_update_win = tk.Tk()
+            exam_update_win = tk.Toplevel()
             exam_update_win.title("Update Exam")
             exam_update_win.state("zoomed")
 
@@ -1007,7 +1009,7 @@ def open_admin_UI() -> None:
         global delete_exam_win
 
         if delete_exam_win is None or not delete_exam_win.winfo_exists():
-            delete_exam_win = tk.Tk()
+            delete_exam_win = tk.Toplevel()
             delete_exam_win.title("Delete Exam")
             delete_exam_win.state("zoomed")
 
