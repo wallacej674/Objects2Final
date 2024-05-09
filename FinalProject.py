@@ -1319,7 +1319,7 @@ def registercredentials() -> None:
     role = role_dd.get()
 
     if username == '' or password == '' or role == '':
-        messagebox.showerror("Username, password and/or role can not be empty. Please input a username and/or password.")
+        messagebox.showerror("Registration Failed", "Username, password and/or role can not be empty. Please input a username and/or password.")
         return
 
     try:
@@ -1357,7 +1357,7 @@ def UserLogin() -> None:
     password = password_entry2.get()
 
     if username == '' or password == '':
-        messagebox.showerror("Username and/or password can not be empty. Please input a username and/or password.")
+        messagebox.showerror("Login Failed", "Username and/or password can not be empty. Please input a username and/or password.")
         return
     try:
         conn = sqlite3.connect('Users.db')
