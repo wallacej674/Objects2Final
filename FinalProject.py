@@ -30,6 +30,7 @@ def createTables() -> None:
     curs.execute("DROP TABLE IF EXISTS CourseStaff")
     curs.execute("DROP TABLE IF EXISTS Grades")
     curs.execute("DROP TABLE IF EXISTS Exams")
+    curs.execute("DROP TABLE IF EXISTS Assignments")
     
     curs.execute('''CREATE TABLE IF NOT EXISTS Users
                 (UserID INTEGER PRIMARY KEY AUTOINCREMENT, Username TEXT, Password TEXT, Role TEXT)''')
@@ -73,7 +74,6 @@ def createTables() -> None:
                 (ExamID INTEGER PRIMARY KEY AUTOINCREMENT, Name TEXT, Date TEXT, CourseID INTEGER,
                 FOREIGN KEY (CourseID) REFERENCES Courses(CourseID)
                 )''')
-
     curs.execute(''' CREATE TABLE IF NOT EXISTS Assignments(
                 AssignmentID INTEGER PRIMARY KEY AUTOINCREMENT,
                 StudentID INTEGER,
@@ -83,9 +83,9 @@ def createTables() -> None:
                 File TEXT,
                 Score REAL DEFAULT -1,
                 Submitted BOOLEAN,
-    FOREIGN KEY(StudentID) REFERENCES Users(UserID),
-    FOREIGN KEY(CourseID) REFERENCES Courses(CourseID))
-    ''')
+                FOREIGN KEY(StudentID) REFERENCES Users(UserID),
+                FOREIGN KEY(CourseID) REFERENCES Courses(CourseID)
+                )''')
     conn.commit()
     conn.close()
 
@@ -487,8 +487,8 @@ def open_admin_UI() -> None:
         def view_information() -> None:
             studentID = studentIDentry.get()
 
-            deletion_thread = threading.Thread(target=perform_view, args=(studentID,))
-            deletion_thread.start()
+            view_thread = threading.Thread(target=perform_view, args=(studentID,))
+            view_thread.start()
             
         def perform_view(studentID: str) -> None:
             try:
@@ -500,16 +500,7 @@ def open_admin_UI() -> None:
                     student = curs.fetchone()
 
                     if student:
-                        info_win = tk.Toplevel(view_win)
-                        info_win.title("Student Profile")
-                        
-                        infolabel = tk.Label(info_win, text=f"Phone: {student[1]} \n Email: {student[2]} \n Name: {student[3]}")
-                        infolabel.grid(row= 0, column= 0, padx= 5, pady= 5)
-
-                        academiclabel = tk.Label(info_win, text=f"Grade: {student[4]} \n Graduation Year: {student[5]}")
-                        academiclabel.grid(row= 0, column= 1,  padx= 5, pady= 5)
-
-                        conn.close()
+                        show_info(student)
                     else:
                         messagebox.showerror("Failure", "Student was not found.")
             except sqlite3.Error as e:
@@ -517,6 +508,17 @@ def open_admin_UI() -> None:
             finally:
                 if conn:
                     conn.close()
+
+        def show_info(student):
+            info_win = tk.Toplevel()
+            info_win.title("Student Profile")
+                        
+            infolabel = tk.Label(info_win, text=f"Phone: {student[1]} \n Email: {student[2]} \n Name: {student[3]}")
+            infolabel.grid(row= 0, column= 0, padx= 5, pady= 5)
+
+            academiclabel = tk.Label(info_win, text=f"Grade: {student[4]} \n Graduation Year: {student[5]}")
+            academiclabel.grid(row= 0, column= 1,  padx= 5, pady= 5)
+            
                 
         viewbutton = tk.Button(view_win, text= "View Profile", command= view_information)
         viewbutton.grid(row= 1, column= 0, columnspan= 2, padx= 5, pady= 5)
@@ -1006,7 +1008,7 @@ def open_admin_UI() -> None:
     add_student_to_course_button = tk.Button(student_frame, text= "Add Student to Course", command= addStudentCourse)
     add_student_to_course_button.pack(pady= 10)
 
-    delete_enrollment_button = tk.Button(other_frame, text= "Delete Enrollment", command= deleteEnrollment)
+    delete_enrollment_button = tk.Button(student_frame, text= "Delete Enrollment", command= deleteEnrollment)
     delete_enrollment_button.pack(pady= 10)
 
     view_profile_button = tk.Button(student_frame, text= "View Student Information", command= view_student_profile)
@@ -1021,7 +1023,7 @@ def open_admin_UI() -> None:
     add_faculty_to_course_button = tk.Button(faculty_frame, text= "Add Faculty to Course", command= addFacultyCourse)
     add_faculty_to_course_button.pack(pady= 10)
 
-    delete_faculty_course_button = tk.Button(other_frame, text= "Delete Faculty from Course", command= deleteCourseStaff)
+    delete_faculty_course_button = tk.Button(faculty_frame, text= "Delete Faculty from Course", command= deleteCourseStaff)
     delete_faculty_course_button.pack(pady= 10)
 
     update_Fprofile_button = tk.Button(faculty_frame, text= "Update Faculty Profile", command= update_faculty_profile)
@@ -1154,14 +1156,7 @@ def open_student_UI(username: str) -> None:
 
         for assignment_id, assignment_name in assignments:
             tk.Radiobutton(submit_win, text=assignment_name, variable=assignment_var, value=assignment_id).pack()
-
-
-        assignment_var = tk.StringVar()
-        assignment_var.set(assignments[0][0])  # Default to the first assignment
-
-        for assignment_id, assignment_name in assignments:
-            tk.Radiobutton(submit_win, text=assignment_name, variable=assignment_var, value=assignment_id).pack()
-
+        
         def upload_file():
             conn = sqlite3.connect('Users.db')
             curs = conn.cursor()
@@ -1182,8 +1177,7 @@ def open_student_UI(username: str) -> None:
 
         upload_button = tk.Button(submit_win, text="Upload File", command=upload_file)
         upload_button.pack(pady=10)
-
-
+        
     def view_grades():
         conn = sqlite3.connect('Users.db')
         curs = conn.cursor()
@@ -1303,48 +1297,63 @@ def UserLogin() -> None:
 ###
 
 # MAIN GUI
-createTables()
+
 ###
 
 main_win = tk.Tk()
 main_win.title("User Login")
 main_win.state("zoomed")
 
-username_label = tk.Label(main_win, text= "Username: ")
+
+login_frame = tk.Frame(main_win, bd=2, relief=tk.GROOVE)
+login_frame.grid(row= 0, column= 1, padx= 2, pady= 2, sticky= "nsew")
+login_title = tk.Label(login_frame, text= "Log In")
+login_title.grid(row= 0, column= 1, columnspan= 2)
+    
+register_frame = tk.Frame(main_win, bd=2, relief=tk.GROOVE)
+register_frame.grid(row= 0, column= 0, padx= 2, pady= 2, sticky= "nsew")
+register_title = tk.Label(register_frame, text= "Register")
+register_title.grid(row= 0, column= 0, columnspan= 2)
+
+main_win.rowconfigure(0, weight=1)
+main_win.columnconfigure(0, weight=1)
+main_win.columnconfigure(1, weight=1)
+
+username_label = tk.Label(register_frame, text= "Username: ")
 username_label.grid(row= 1, column= 0, padx= 5, pady= 5)
 
-password_label = tk.Label(main_win, text= "Password: ")
+password_label = tk.Label(register_frame, text= "Password: ")
 password_label.grid(row= 2, column= 0, padx= 5, pady= 5)
 
-role_label = tk.Label(main_win, text= "Role: ")
+role_label = tk.Label(register_frame, text= "Role: ")
 role_label.grid(row= 3, column= 0, padx= 5, pady= 5)
 
-username_entry = tk.Entry(main_win)
+username_entry = tk.Entry(register_frame)
 username_entry.grid(row= 1, column= 1, padx= 5, pady= 5)
 
-password_entry = tk.Entry(main_win, show="*")
+password_entry = tk.Entry(register_frame, show="*")
 password_entry.grid(row= 2, column= 1, padx= 5, pady= 5)
 
 roles = ["Admin", "Student", "Faculty"]
-role_dd = ttk.Combobox(main_win, values=roles, state="readonly")
+role_dd = ttk.Combobox(register_frame, values=roles, state="readonly")
 role_dd.grid(row= 3, column= 1, padx= 5, pady= 5)
 
-username_label2 = tk.Label(main_win, text= "Username: ")
+username_label2 = tk.Label(login_frame, text= "Username: ")
 username_label2.grid(row= 1, column= 2, padx= 5, pady= 5)
 
-password_label2 = tk.Label(main_win, text= "Password: ")
+password_label2 = tk.Label(login_frame, text= "Password: ")
 password_label2.grid(row= 2, column= 2, padx= 5, pady= 5)
 
-username_entry2 = tk.Entry(main_win)
+username_entry2 = tk.Entry(login_frame)
 username_entry2.grid(row= 1, column= 3, padx= 10, pady= 5)
 
-password_entry2 = tk.Entry(main_win, show="*")
+password_entry2 = tk.Entry(login_frame, show="*")
 password_entry2.grid(row= 2, column= 3, padx= 5, pady= 5)
         
-register_button = tk.Button(main_win, text= "Register", command= registercredentials)
+register_button = tk.Button(register_frame, text= "Register", command= registercredentials)
 register_button.grid(row= 4, column= 0, padx= 5, pady= 5)
     
-login_button = tk.Button(main_win, text= "Login", command= UserLogin)
+login_button = tk.Button(login_frame, text= "Login", command= UserLogin)
 login_button.grid(row= 3, column= 2, padx= 5, pady= 5)
 
 main_win.mainloop()
