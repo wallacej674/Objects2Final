@@ -2,6 +2,10 @@ import tkinter as tk
 import sqlite3
 import threading
 from tkinter import Tk, messagebox, ttk, filedialog
+import socket
+import time
+from typing import List
+
 
 ### Current Problems ###
 # UNCUSTOMIZED GUI
