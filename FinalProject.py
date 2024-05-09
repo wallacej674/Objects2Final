@@ -73,6 +73,19 @@ def createTables() -> None:
                 (ExamID INTEGER PRIMARY KEY AUTOINCREMENT, Name TEXT, Date TEXT, CourseID INTEGER,
                 FOREIGN KEY (CourseID) REFERENCES Courses(CourseID)
                 )''')
+
+    curs.execute(''' CREATE TABLE IF NOT EXISTS Assignments(
+                AssignmentID INTEGER PRIMARY KEY AUTOINCREMENT,
+                StudentID INTEGER,
+                CourseID INTEGER,
+                AssignmentName TEXT,
+                SubmissionDate TEXT,
+                File TEXT,
+                Score REAL DEFAULT -1,
+                Submitted BOOLEAN,
+    FOREIGN KEY(StudentID) REFERENCES Users(UserID),
+    FOREIGN KEY(CourseID) REFERENCES Courses(CourseID)
+    ''')
     conn.commit()
     conn.close()
 
@@ -1119,7 +1132,29 @@ def open_student_UI(username: str) -> None:
         addbutton.grid(row= 3, column= 0, columnspan= 2, padx= 5, pady= 5)
 
     def submit_assignment():
-        pass
+        conn = sqlite3.connect('Users.db')
+        curs = conn.cursor()
+
+        # Get the student's ID based on their username
+        curs.execute("SELECT UserID FROM Users WHERE Username = ?", (username,))
+        student_id = curs.fetchone()[0]
+
+        # Get the assignments for the student
+        curs.execute("SELECT AssignmentID, AssignmentName FROM Assignments WHERE StudentID = ?", (student_id,))
+        assignments = curs.fetchall()
+
+        conn.close()
+
+        # Display the assignments in a new window
+        submit_win = tk.Toplevel(student_win)
+        submit_win.title("Submit Assignment")
+
+        assignment_var = tk.StringVar()
+        assignment_var.set(assignments[0][0])  # Default to the first assignment
+
+        for assignment_id, assignment_name in assignments:
+            tk.Radiobutton(submit_win, text=assignment_name, variable=assignment_var, value=assignment_id).pack()
+
 
     def view_grades():
         conn = sqlite3.connect('Users.db')
