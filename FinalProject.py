@@ -30,6 +30,7 @@ def createTables() -> None:
     curs.execute("DROP TABLE IF EXISTS CourseStaff")
     curs.execute("DROP TABLE IF EXISTS Grades")
     curs.execute("DROP TABLE IF EXISTS Exams")
+    curs.execute("DROP TABLE IF EXISTS Assignments")
     
     curs.execute('''CREATE TABLE IF NOT EXISTS Users
                 (UserID INTEGER PRIMARY KEY AUTOINCREMENT, Username TEXT, Password TEXT, Role TEXT)''')
@@ -85,6 +86,15 @@ def createTables() -> None:
                 Submitted BOOLEAN,
     FOREIGN KEY(StudentID) REFERENCES Users(UserID),
     FOREIGN KEY(CourseID) REFERENCES Courses(CourseID))
+    ''')
+    curs.execute(''' CREATE TABLE IF NOT EXISTS Messages(
+                SenderID INTEGER,
+                ReceiverID INTEGER,
+                Message TEXT,
+                Timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY(SenderID) REFERENCES Users(UserID),
+                FOREIGN KEY(ReceiverID) REFERENCES Users(UserID)
+                )
     ''')
     conn.commit()
     conn.close()
@@ -1155,13 +1165,6 @@ def open_student_UI(username: str) -> None:
         for assignment_id, assignment_name in assignments:
             tk.Radiobutton(submit_win, text=assignment_name, variable=assignment_var, value=assignment_id).pack()
 
-
-        assignment_var = tk.StringVar()
-        assignment_var.set(assignments[0][0])  # Default to the first assignment
-
-        for assignment_id, assignment_name in assignments:
-            tk.Radiobutton(submit_win, text=assignment_name, variable=assignment_var, value=assignment_id).pack()
-
         def upload_file():
             conn = sqlite3.connect('Users.db')
             curs = conn.cursor()
@@ -1204,8 +1207,80 @@ def open_student_UI(username: str) -> None:
         for i, (course_name, grade) in enumerate(grades):
             tk.Label(grades_win, text=f"Course: {course_name} - Grade: {grade}").pack()
 
-    def communicate_with_faculty():
-        pass
+        #    SenderID INTEGER,
+        #ReceiverID INTEGER,
+        #Message TEXT,
+        #Timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        #FOREIGN KEY(Sender_ID) REFERENCES Users(UserID),
+        #FOREIGN KEY(ReceiverID) REFERENCES Users(UserID)
+        #    curs.execute('''CREATE TABLE IF NOT EXISTS Faculty
+        #    (FacultyID INTEGER PRIMARY KEY AUTOINCREMENT, Phone TEXT, Email TEXT, Name TEXT, Qualifications TEXT,
+         #   FOREIGN KEY (FacultyID) REFERENCES Users(UserID)
+          #  )''')
+
+    #curs.execute('''CREATE TABLE IF NOT EXISTS Students
+     #       (StudentID INTEGER PRIMARY KEY AUTOINCREMENT, Phone TEXT, Email TEXT, Name TEXT, Grade TEXT, Graduation TEXT,
+      #      FOREIGN KEY (StudentID) REFERENCES Users(UserID)
+       #     )''')
+    def send_a_message():
+        communicate_win = tk.Toplevel(student_win)
+        communicate_win.title("Email")
+
+
+        email_label = tk.Label(communicate_win, text="Email:")
+        email_label.pack(padx=10, pady=5)
+
+
+        email_widget = tk.Entry(communicate_win, bd= 5)
+        email_widget.pack(padx=10, pady=10)
+
+
+        text_label = tk.Label(communicate_win, text="Message:")
+        text_label.pack(padx=10, pady=5)
+
+        text_widget = tk.Text(communicate_win, height=10, width=50)
+        text_widget.pack(padx=10, pady=10)
+
+
+        def send_message():
+            email = email_widget.get()
+            message = text_widget.get("1.0", "end-1c")
+            conn = sqlite3.connect('Users.db')
+            curs = conn.cursor()
+            curs.execute('''SELECT FacultyID FROM Faculty WHERE Email=?''', (email,))
+
+            faculty_row = curs.fetchone()
+            if faculty_row is None:
+                messagebox.showerror("Invalid email", "Faculty email not found")
+                return
+
+            facultyID = faculty_row[0]
+
+
+
+            curs.execute('''
+            SELECT StudentID FROM Students WHERE username= ?, (username,)
+            ''')
+
+            studentID = curs.fetchone()[0]
+
+
+
+            if message == "" or message == '':
+                messagebox.showerror("invalid message", "Text box must contain info")
+            elif facultyID:
+
+                curs.execute("INSERT INTO Messages (SenderID, ReceiverID, Message) VALUES (?,?,?)",
+                         (studentID, facultyID, message))
+
+                messagebox.showinfo("Success", "Email Sent")
+
+            else:
+                messagebox.showerror("Invalid Email", "Invalid email given")
+
+        send_message_button = tk.Button(communicate_win, text= "Send Message", command= send_message)
+        send_message_button.pack(pady= 10)
+
 
     view_courses = tk.Button(student_win, text= "View Courses", command= view_courses)
     view_courses.pack(pady= 10)
@@ -1213,14 +1288,16 @@ def open_student_UI(username: str) -> None:
     register_class = tk.Button(student_win, text= "Register for a Class", command= register_class)
     register_class.pack(pady= 10)
 
-    submit_assignments = tk.Button(student_win, text= "submit assignments", command= submit_assignment)
+    submit_assignments = tk.Button(student_win, text= "Submit Assignments", command= submit_assignment)
     submit_assignments.pack(pady= 10)
 
-    view_grades = tk.Button(student_win, text= "view grades", command= view_grades)
+    view_grades = tk.Button(student_win, text= "View Grades", command= view_grades)
     view_grades.pack(pady= 10)
 
-    communicate_with_fac = tk.Button(student_win, text= "communicate with faculty", command= communicate_with_faculty)
+    communicate_with_fac = tk.Button(student_win, text= "Email Faculty", command= send_a_message)
     communicate_with_fac.pack(pady= 10)
+
+
 
     student_win.mainloop()
 
