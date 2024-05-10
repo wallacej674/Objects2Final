@@ -3,7 +3,6 @@ import sqlite3
 import threading
 from tkinter import Tk, messagebox, ttk, filedialog
 import socket
-
 import tkinter as tk
 from tkinter import filedialog, messagebox
 import sqlite3
@@ -13,9 +12,44 @@ import sqlite3
 
 
 class CollegeDatabase:
+
+
+    #to initialize a college database
     def __init__(self, db_name='Users.db'):
-        self.conn = sqlite3.connect(db_name)
+        self.db_name = db_name
+        self.conn = None
+        self.curs = None
+        self.lock = threading.Lock()
+
+
+    #to enter a cursor safely into a database
+    def __enter__(self) -> 'Database':
+        self.conn =sqlite3.connect(self.db_name, check_same_thread=False)
         self.curs = self.conn.cursor()
+        return self
+
+    #to safely exit the database connection
+    def __exit__(self, exc_type, exc_val, exc_tb) -> None:
+        if self.conn:
+            self.conn.close()
+
+
+    def execute_query(self, query: str, params: tuple = ()) -> None:
+        with self.lock:
+            #check if a database connection does not exist and establish one if needed.
+            if not self.conn:
+                self.conn = sqlite3.connect(self.db_name)
+            #Execute thr SQL query using the connection. Automatically manage transaction commit/rollback
+            with self.conn:
+                self.curs.execute(query, params)
+
+
+    def fetch_query(self, query: str, params: tuple = ()) -> list[tuple]:
+        #fetch results from a SQL query with optional parameters.
+        with self.lock:
+            self.curs.execute(query,params)
+            return self.curs.fetchall()
+
 
     def create_tables(self):
         self.curs.execute("DROP TABLE IF EXISTS Users")
