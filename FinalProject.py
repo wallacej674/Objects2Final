@@ -101,7 +101,7 @@ def createTables() -> None:
 ###
 
 def open_admin_UI() -> None:
-    main_win.destroy()
+
     
     admin_win = tk.Tk()
     admin_win.title("Welcome Admin")
@@ -1282,11 +1282,11 @@ def open_faculty_UI() -> None:
     manage_assignments_button = tk.Button(faculty_win, text="Manage Assignments", command=manage_assignments)
     manage_assignments_button.pack()
 
-    main_win.mainloop()
+
 
 
 def open_student_UI(username: str) -> None:
-    main_win.destroy()
+
     
     student_win = tk.Tk()
     student_win.title("Welcome Student")
@@ -1643,7 +1643,7 @@ class SchoolServer:
 
         self.server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.server_socket.bind(("localhost",port))
-        self.server_socket.listen(5) #im allowing 6 clients to join my server
+        self.server_socket.listen(5)
         self.server_socket.settimeout(server_timeout)
 
 
@@ -1710,3 +1710,4 @@ class SchoolServer:
 
 
 
+school_web = SchoolServer()

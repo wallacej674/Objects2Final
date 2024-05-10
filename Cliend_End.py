@@ -16,11 +16,7 @@ server_port = 12345
 
 # Example messages to send to the server
 messages = [
-    "open_admin_UI",
-    "open_faculty_UI",
-    "open_student_UI",
-    "user_login",
-    "register_credentials"
+    "main"
 ]
 
 for message in messages:
