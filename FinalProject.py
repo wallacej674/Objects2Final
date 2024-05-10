@@ -1449,8 +1449,7 @@ def open_student_UI(username: str) -> None:
         for i, (course_name, grade) in enumerate(grades):
             tk.Label(grades_win, text=f"Course: {course_name} - Grade: {grade}").pack()
 
-    def communicate_with_faculty():
-        pass
+
 
     view_courses = tk.Button(student_win, text= "View Courses", command= view_courses)
     view_courses.pack(pady= 10)
@@ -1464,8 +1463,6 @@ def open_student_UI(username: str) -> None:
     view_grades = tk.Button(student_win, text= "view grades", command= view_grades)
     view_grades.pack(pady= 10)
 
-    communicate_with_fac = tk.Button(student_win, text= "communicate with faculty", command= communicate_with_faculty)
-    communicate_with_fac.pack(pady= 10)
 
     student_win.mainloop()
 
