@@ -129,8 +129,13 @@ def open_faculty_UI() -> None:
             course_id = course_id_entry.get()
             assignment_name = assignment_name_entry.get()
             submission_date = submission_date_entry.get()
-            curs.execute('INSERT INTO Assignments (CourseID, AssignmentName, SubmissionDate, Submitted) VALUES (?, ?, ?, ?)', 
-                         (course_id, assignment_name, submission_date, False))
+
+            curs.execute('SELECT StudentID FROM Students')
+            student_ids = curs.fetchall()
+    
+            for student_id in student_ids:
+                curs.execute('INSERT INTO Assignments (CourseID, AssignmentName, SubmissionDate, Submitted, StudentID) VALUES (?, ?, ?, ?, ?)', 
+                             (course_id, assignment_name, submission_date, False, student_id))
             conn.commit()
             messagebox.showinfo("Success", "Assignment added successfully!")
 
