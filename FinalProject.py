@@ -1656,35 +1656,28 @@ class SchoolServer:
     def handle_client(self, client_socket: socket.socket) -> None:
         client_socket.settimeout(self.client_timeout)
 
-
         try:
             data = client_socket.recv(1024).decode()
             command = data.split("|")[0]
-
 
             if command == "open_admin_UI":
                 open_admin_UI()
                 client_socket.send("Admin logged in".encode())
 
-
             elif command == "open_faculty_UI":
                 open_faculty_UI()
                 client_socket.send("Faculty logged in".encode())
-
 
             elif command == "open_student_UI":
                 open_student_UI(data.split("|")[1:])
                 client_socket.send("Student logged in".encode())
 
-
             elif command == "main":
                 main()
                 client_socket.send("user is logging in...".encode())
 
-
         except socket.timeout:(
             client_socket.send("Client connection timed out".encode()))
-
 
         client_socket.close()
 

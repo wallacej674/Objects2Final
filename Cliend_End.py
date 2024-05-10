@@ -14,12 +14,8 @@ def send_message(message: str, server_address: str, server_port: int) -> str:
 server_address = "localhost"
 server_port = 12345
 
-# Example messages to send to the server
-messages = [
-    "main"
-]
 
-for message in messages:
-    response = send_message(message, server_address, server_port)
-    print(f"Message: {message}, Response: {response}")
+def start():
+    send_message("main","localhost",12345)
+
     
