@@ -1179,7 +1179,8 @@ def open_faculty_UI() -> None:
             curs.execute('SELECT StudentID FROM Students')
             student_ids = curs.fetchall()
     
-            for student_id in student_ids:
+            for student_id_tuple in student_ids:
+                student_id = student_id_tuple[0]
                 curs.execute('INSERT INTO Assignments (CourseID, AssignmentName, SubmissionDate, Submitted, StudentID) VALUES (?, ?, ?, ?, ?)', 
                              (course_id, assignment_name, submission_date, False, student_id))
             conn.commit()
