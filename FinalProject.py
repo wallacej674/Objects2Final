@@ -3,8 +3,9 @@ import sqlite3
 import threading
 from tkinter import Tk, messagebox, ttk, filedialog
 import socket
-import time
-from typing import List
+
+
+
 
 
 ### Current Problems ###
@@ -1377,6 +1378,11 @@ def open_student_UI(username: str) -> None:
 
         conn.close()
 
+        #checks to see if there are assignments
+        if not assignments:
+            messagebox.showinfo("No Assignments", "You have no assignments to submit.")
+            return
+
         # Display the assignments in a new window
         submit_win = tk.Toplevel(student_win)
         submit_win.title("Submit Assignment")
@@ -1463,137 +1469,238 @@ def open_student_UI(username: str) -> None:
 
 
 ###
-    
-def registercredentials() -> None:
-    username = username_entry.get()
-    password = password_entry.get()
-    role = role_dd.get()
-
-    if username == '' or password == '' or role == '':
-        messagebox.showerror("Registration Failed", "Username, password and/or role can not be empty. Please input a username and/or password.")
-        return
-
-    try:
-        conn = sqlite3.connect('Users.db')
-        curs = conn.cursor()
-        curs.execute("SELECT * FROM Users WHERE Username = ?",
-                     (username, ))
-        if curs.fetchone():
-            messagebox.showerror("Error", "Username already exists. Please try again.")
-        else:
-            curs.execute("INSERT INTO Users(Username, Password, Role) VALUES (?, ?, ?)",
-                     (username, password, role))
-            userid = curs.lastrowid
-            if role == 'Admin':
-                curs.execute("INSERT INTO Admins (AdminID) VALUES (?)",
-                             (userid, ))
-            elif role == 'Faculty':
-                curs.execute("INSERT INTO Faculty (FacultyID) VALUES (?)",
-                             (userid, ))
-            elif role == 'Student':
-                curs.execute("INSERT INTO Students (StudentID) VALUES (?)",
-                             (userid, ))
-                
-            conn.commit()
-            conn.close()
-            messagebox.showinfo("Welcome", "Registration successful")
-    except sqlite3.Error as e:
-        messagebox.showerror("Database Error", f"An error occurred: {str(e)}")
-    finally:
-        if conn:
-            conn.close()
-
-def UserLogin() -> None:
-    username = username_entry2.get()
-    password = password_entry2.get()
-
-    if username == '' or password == '':
-        messagebox.showerror("Login Failed", "Username and/or password can not be empty. Please input a username and/or password.")
-        return
-    try:
-        conn = sqlite3.connect('Users.db')
-        curs = conn.cursor()
-        curs.execute("SELECT Password, Role FROM Users WHERE Username = ?",
-                     (username, ))
-        result = curs.fetchone()
-        if result and result[0] == password:
-            messagebox.showinfo("Welcome", "Successful login.")
-            if result[1] == 'Admin':
-                open_admin_UI()
-            elif result[1] == 'Faculty':
-                open_faculty_UI()
-            elif result[1] == 'Student':
-                open_student_UI(username)
-        else:
-            messagebox.showerror("Error", "Invalid username and/or password.")
-    except sqlite3.Error as e:
-        messagebox.showerror("Database Error", f"An error occurred: {str(e)}")
-    finally:
-        if conn:
-            conn.close()
-
-###
 
 # MAIN GUI
 
 ###
 def main():
+    createTables()
+    def registercredentials() -> None:
+        username = username_entry.get()
+        password = password_entry.get()
+        role = role_dd.get()
+
+        if username == '' or password == '' or role == '':
+            messagebox.showerror("Registration Failed", "Username, password and/or role can not be empty. Please input a username and/or password.")
+            return
+
+        try:
+            conn = sqlite3.connect('Users.db')
+            curs = conn.cursor()
+            curs.execute("SELECT * FROM Users WHERE Username = ?",
+                         (username, ))
+            if curs.fetchone():
+                messagebox.showerror("Error", "Username already exists. Please try again.")
+            else:
+                curs.execute("INSERT INTO Users(Username, Password, Role) VALUES (?, ?, ?)",
+                             (username, password, role))
+                userid = curs.lastrowid
+                if role == 'Admin':
+                    curs.execute("INSERT INTO Admins (AdminID) VALUES (?)",
+                                 (userid, ))
+                elif role == 'Faculty':
+                    curs.execute("INSERT INTO Faculty (FacultyID) VALUES (?)",
+                                 (userid, ))
+                elif role == 'Student':
+                    curs.execute("INSERT INTO Students (StudentID) VALUES (?)",
+                                 (userid, ))
+
+                conn.commit()
+                conn.close()
+                messagebox.showinfo("Welcome", "Registration successful")
+        except sqlite3.Error as e:
+            messagebox.showerror("Database Error", f"An error occurred: {str(e)}")
+        finally:
+            if conn:
+                conn.close()
+
+    def UserLogin() -> None:
+        username = username_entry2.get()
+        password = password_entry2.get()
+
+        if username == '' or password == '':
+            messagebox.showerror("Login Failed", "Username and/or password can not be empty. Please input a username and/or password.")
+            return
+        try:
+            conn = sqlite3.connect('Users.db')
+            curs = conn.cursor()
+            curs.execute("SELECT Password, Role FROM Users WHERE Username = ?",
+                         (username, ))
+            result = curs.fetchone()
+            if result and result[0] == password:
+                messagebox.showinfo("Welcome", "Successful login.")
+                if result[1] == 'Admin':
+                    open_admin_UI()
+                elif result[1] == 'Faculty':
+                    open_faculty_UI()
+                elif result[1] == 'Student':
+                    open_student_UI(username)
+            else:
+                messagebox.showerror("Error", "Invalid username and/or password.")
+        except sqlite3.Error as e:
+            messagebox.showerror("Database Error", f"An error occurred: {str(e)}")
+        finally:
+            if conn:
+                conn.close()
+
+
     main_win = tk.Tk()
     main_win.title("User Login")
     main_win.state("zoomed")
 
-    login_frame = tk.Frame(main_win, bd=2, relief=tk.GROOVE)
-    login_frame.grid(row= 0, column= 1, padx= 2, pady= 2, sticky= "nsew")
-    login_title = tk.Label(login_frame, text= "Log In")
-    login_title.grid(row= 0, column= 1, columnspan= 2)
-        
-    register_frame = tk.Frame(main_win, bd=2, relief=tk.GROOVE)
-    register_frame.grid(row= 0, column= 0, padx= 2, pady= 2, sticky= "nsew")
-    register_title = tk.Label(register_frame, text= "Register")
-    register_title.grid(row= 0, column= 0, columnspan= 2)
-
-    main_win.rowconfigure(0, weight=1)
-    main_win.columnconfigure(0, weight=1)
-    main_win.columnconfigure(1, weight=1)
-
-    username_label = tk.Label(register_frame, text= "Username: ")
+    username_label = tk.Label(main_win, text= "Username: ")
     username_label.grid(row= 1, column= 0, padx= 5, pady= 5)
 
-    password_label = tk.Label(register_frame, text= "Password: ")
+    password_label = tk.Label(main_win, text= "Password: ")
     password_label.grid(row= 2, column= 0, padx= 5, pady= 5)
 
-    role_label = tk.Label(register_frame, text= "Role: ")
+    role_label = tk.Label(main_win, text= "Role: ")
     role_label.grid(row= 3, column= 0, padx= 5, pady= 5)
 
-    username_entry = tk.Entry(register_frame)
+    username_entry = tk.Entry(main_win)
     username_entry.grid(row= 1, column= 1, padx= 5, pady= 5)
 
-    password_entry = tk.Entry(register_frame, show="*")
+    password_entry = tk.Entry(main_win, show="*")
     password_entry.grid(row= 2, column= 1, padx= 5, pady= 5)
 
     roles = ["Admin", "Student", "Faculty"]
-    role_dd = ttk.Combobox(register_frame, values=roles, state="readonly")
+    role_dd = ttk.Combobox(main_win, values=roles, state="readonly")
     role_dd.grid(row= 3, column= 1, padx= 5, pady= 5)
 
-    username_label2 = tk.Label(login_frame, text= "Username: ")
+    username_label2 = tk.Label(main_win, text= "Username: ")
     username_label2.grid(row= 1, column= 2, padx= 5, pady= 5)
 
-    password_label2 = tk.Label(login_frame, text= "Password: ")
+    password_label2 = tk.Label(main_win, text= "Password: ")
     password_label2.grid(row= 2, column= 2, padx= 5, pady= 5)
 
-    username_entry2 = tk.Entry(login_frame)
+    username_entry2 = tk.Entry(main_win)
     username_entry2.grid(row= 1, column= 3, padx= 10, pady= 5)
 
-    password_entry2 = tk.Entry(login_frame, show="*")
+    password_entry2 = tk.Entry(main_win, show="*")
     password_entry2.grid(row= 2, column= 3, padx= 5, pady= 5)
-            
-    register_button = tk.Button(register_frame, text= "Register", command= registercredentials)
+
+    register_button = tk.Button(main_win, text= "Register", command= registercredentials)
     register_button.grid(row= 4, column= 0, padx= 5, pady= 5)
-        
-    login_button = tk.Button(login_frame, text= "Login", command= UserLogin)
+
+    login_button = tk.Button(main_win, text= "Login", command= UserLogin)
     login_button.grid(row= 3, column= 2, padx= 5, pady= 5)
 
+
+
     main_win.mainloop()
-if __name__ == "__main__":
-    createTables()
-    main()
+
+
+
+
+
+
+
+
+
+
+# USER FUNCTIONS
+
+#send a message to the server
+def send_message(message: str, server_address: str, server_port: int) -> str:
+    # Create a socket for the client
+    client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+
+    try:
+        # Connect to the server
+        client_socket.connect((server_address, server_port))
+
+        # Send the message to the server
+        client_socket.sendall(message.encode())
+
+        # Receive the server's response
+        response = client_socket.recv(1024).decode()
+
+        return response
+    finally:
+        # Close the socket
+        client_socket.close()
+
+
+
+class SchoolServer:
+    def __init__(self, database_name:str , port: int, server_timeout: int, client_timeout: int):
+        #creates a TCP socket and binds it to the address
+        self.database_name = database_name
+        self.port = port
+        self.server_timeout = server_timeout
+        self.client_timeout = client_timeout
+
+
+        self.conn = sqlite3.connect(database_name)
+        self.create_school_tables()
+
+
+        self.server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        self.server_socket.bind(("localhost",port))
+        self.server_socket.listen(5) #im allowing 6 clients to join my server
+        self.server_socket.settimeout(server_timeout)
+
+
+
+
+    def create_school_tables(self) -> None:
+        createTables()
+
+
+
+
+    def handle_client(self, client_socket: socket.socket) -> None:
+        client_socket.settimeout(self.client_timeout)
+
+
+        try:
+            data = client_socket.recv(1024).decode()
+            command = data.split("|")[0]
+
+
+            if command == "open_admin_UI":
+                open_admin_UI()
+                client_socket.send("Admin logged in".encode())
+
+
+            elif command == "open_faculty_UI":
+                open_faculty_UI()
+                client_socket.send("Faculty logged in".encode())
+
+
+            elif command == "open_student_UI":
+                open_student_UI(data.split("|")[1:])
+                client_socket.send("Student logged in".encode())
+
+
+            elif command == "main":
+                main()
+                client_socket.send("user is logging in...".encode())
+
+
+        except socket.timeout:(
+            client_socket.send("Client connection timed out".encode()))
+
+
+        client_socket.close()
+
+
+
+
+    def start(self) -> None:
+        print(f"Server is listening on port {self.port}, with timeout {self.server_timeout} seconds")
+        while True:
+            try:
+                #accept client connection
+                client_socket, _ = self.server_socket.accept()
+                #handle client request
+                self.handle_client(client_socket)
+            except socket.timeout:
+                #handle server timeout
+                print("Server timed out, stopping the server.")
+                break
+
+
+
+
+
