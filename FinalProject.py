@@ -1691,7 +1691,8 @@ class SchoolServer:
                 #accept client connection
                 client_socket, _ = self.server_socket.accept()
                 #handle client request
-                self.handle_client(client_socket)
+                client_thread = threading.Thread(target=self.handle_client, args= (client_socket,))
+                client_thread.start()
             except socket.timeout:
                 #handle server timeout
                 print("Server timed out, stopping the server.")
@@ -1702,3 +1703,4 @@ class SchoolServer:
 
 
 school_web = SchoolServer('Users.db', 12345, 200,200)
+school_web.start()

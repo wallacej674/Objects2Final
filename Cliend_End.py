@@ -19,3 +19,5 @@ def start():
     send_message("main","localhost",12345)
 
     
+
+start()
