@@ -1711,4 +1711,4 @@ class SchoolServer:
 
 
 
-school_web = SchoolServer()
+school_web = SchoolServer('Users.db', 12345, 200,200)
