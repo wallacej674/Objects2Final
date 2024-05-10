@@ -1218,9 +1218,10 @@ def open_faculty_UI() -> None:
             #Contract: -> None
             #Purpose: To save the grade for the student
             def save_grade() -> None:
+                course_id = course_id_entry.get()
                 student_id = student_id_entry.get()
                 grade = grade_entry.get()
-                curs.execute('UPDATE Grades SET student_grade = ? WHERE StudentID = ?', (grade, student_id))
+                curs.execute('UPDATE Grades SET student_grade = ? WHERE StudentID = ? AND CourseID = ?', (grade, student_id, course_id))
                 conn.commit()
                 messagebox.showinfo("Success", f"Grade updated successfully for student {student_id}!")
                 grade_win.destroy()
