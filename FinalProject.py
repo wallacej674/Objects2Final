@@ -1042,7 +1042,7 @@ def open_admin_UI() -> None:
 #Contract: -> None
 #Purpose: To create the faculty user interface window
 def open_faculty_UI() -> None:
-    faculty_win = tk.Toplevel(main_win)
+    faculty_win = tk.Toplevel()
     faculty_win.title("Faculty Dashboard")
     conn = sqlite3.connect('Users.db')
     curs = conn.cursor()
@@ -1097,7 +1097,6 @@ def open_faculty_UI() -> None:
             file_name, file_path = material
             tk.Label(materials_win, text=file_name).pack()
             
-            #EDIT STILL
             #Contract: -> None
             #Purpose: To open the selected course material file
             def open_file(path=file_path) -> None:
@@ -1253,6 +1252,8 @@ def open_faculty_UI() -> None:
         delete_button = tk.Button(assignments_win, text="Delete Selected Assignment", command=lambda: delete_assignment(assignment_id))
         delete_button.pack()
 
+        grade_button = tk.Button(assignments_win, text="Grade Assignment", command= grade_assignment)
+        grade_button.pack()
 
     #Buttons for faculty UI functions
     add_materials_button = tk.Button(faculty_win, text="Add Course Materials", command=add_course_materials)
