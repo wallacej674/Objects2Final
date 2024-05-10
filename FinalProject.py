@@ -1316,7 +1316,7 @@ def open_student_UI(username: str) -> None:
         for i, (course_name, schedule) in enumerate(courses):
             tk.Label(courses_win, text=f"Course {i + 1}: {course_name} - {schedule}").pack()
 
-
+#lets a student register for a particular class that is offered
     def register_class():
         course_win = tk.Tk()
         course_win.title("Add Student to Course")
@@ -1370,7 +1370,7 @@ def open_student_UI(username: str) -> None:
 
         addbutton = tk.Button(course_win, text= "Add Course", command= save_changes)
         addbutton.grid(row= 3, column= 0, columnspan= 2, padx= 5, pady= 5)
-
+#allows the student to submit assignments
     def submit_assignment():
         conn = sqlite3.connect('Users.db')
         curs = conn.cursor()
@@ -1428,7 +1428,7 @@ def open_student_UI(username: str) -> None:
         upload_button = tk.Button(submit_win, text="Upload File", command=upload_file)
         upload_button.pack(pady=10)
 
-
+#lets the student view the grades for a specific class
     def view_grades():
         conn = sqlite3.connect('Users.db')
         curs = conn.cursor()
@@ -1466,17 +1466,7 @@ def open_student_UI(username: str) -> None:
 
     student_win.mainloop()
 
-###
-
-
-# USER FUNCTIONS
-
-
-###
-
-# MAIN GUI
-
-###
+#the initial gui of the system offering two sides. A register side and a login side
 def main():
     createTables()
     def registercredentials() -> None:
