@@ -2,6 +2,7 @@ import sqlite3
 import pandas as pd
 from pandas import DataFrame, Series
 import matplotlib.pyplot as plt
+from matplotlib.ticker import MaxNLocator
 
 def course_popularity():
     conn = sqlite3.connect("Users.db")
@@ -24,12 +25,14 @@ def course_popularity():
     curs.close()
     conn.close()
 
-    plt.figure(figsize=(10, 8))
-    plt.bar(course_names, enrollment_counts, color='blue')
-    plt.xlabel('Course Name')
-    plt.ylabel('Number of Students Enrolled')
-    plt.title('Popularity of Courses Based on Enrollment')
+    fig, ax = plt.subplots()
+    bars = ax.bar(course_names, enrollment_counts, color='lightblue')
+
+    ax.set_xlabel('Courses')
+    ax.set_ylabel('Number of Students')
+    ax.set_title('Course Popularity')
     plt.xticks(rotation=45, ha="right")
+    ax.yaxis.set_major_locator(MaxNLocator(integer=True))
     plt.tight_layout()
     
     plt.show()
@@ -48,9 +51,12 @@ def student_performance(student_id: int):
     course_names = [row[0] for row in data]
     grades = [row[1] for row in data]
 
-    # Create the plot
-    plt.figure(figsize=(10, 6))
-    plt.bar(course_names, grades, color='skyblue')
+    bars = plt.bar(course_names, grades, color='skyblue')
+
+    for bar in bars:
+        yval = bar.get_height()
+        plt.text(bar.get_x() + bar.get_width()/2, yval + 0.5, round(yval, 2),
+                 ha='center', va='bottom')
     plt.xlabel('Courses')
     plt.ylabel('Grades')
     plt.title('Student Performance')
@@ -81,5 +87,5 @@ def faculty_workload(faculty_id: int):
     plt.title('Faculty Stats')
     plt.show()
 
-faculty_workload(3)
+course_popularity()
     
