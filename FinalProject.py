@@ -1046,7 +1046,7 @@ def open_admin_UI() -> None:
 #Contract: -> None
 #Purpose: To create the faculty user interface window
 def open_faculty_UI() -> None:
-    faculty_win = tk.Toplevel(main_win)
+    faculty_win = tk.Toplevel()
     faculty_win.title("Faculty Dashboard")
     conn = sqlite3.connect('Users.db')
     curs = conn.cursor()
@@ -1101,7 +1101,6 @@ def open_faculty_UI() -> None:
             file_name, file_path = material
             tk.Label(materials_win, text=file_name).pack()
             
-            #EDIT STILL
             #Contract: -> None
             #Purpose: To open the selected course material file
             def open_file(path=file_path) -> None:
@@ -1109,7 +1108,15 @@ def open_faculty_UI() -> None:
                 with open(path, 'r') as file:
                     #Reads the entire content of the file
                     content = file.read()
-                return content
+                    
+                # Create a new window to display the file content
+                file_win = tk.Toplevel()
+                file_win.title("File Content")
+
+                # Create a text box and insert the file content
+                text_box = tk.Text(file_win)
+                text_box.insert('1.0', content)
+                text_box.pack()
             
             open_button = tk.Button(materials_win, text="Open", command=open_file)
             open_button.pack()
@@ -1189,6 +1196,39 @@ def open_faculty_UI() -> None:
             conn.commit()
             messagebox.showinfo("Success", "Assignment deleted successfully!")
 
+        #Contract: -> None
+        #Purpose: To grade a student's assignment
+        def grade_assignment() -> None:
+            # Create a new window for grading assignments
+            grade_win = tk.Toplevel()
+            grade_win.title("Grade Assignment")
+
+            # Create an entry field for the student ID
+            student_id_label = tk.Label(grade_win, text="Student ID:")
+            student_id_label.pack()
+            student_id_entry = tk.Entry(grade_win)
+            student_id_entry.pack()
+
+            # Create an entry field for the grade
+            grade_label = tk.Label(grade_win, text="Grade:")
+            grade_label.pack()
+            grade_entry = tk.Entry(grade_win)
+            grade_entry.pack()
+
+            #Contract: -> None
+            #Purpose: To save the grade for the student
+            def save_grade() -> None:
+                student_id = student_id_entry.get()
+                grade = grade_entry.get()
+                curs.execute('UPDATE Grades SET student_grade = ? WHERE StudentID = ?', (grade, student_id))
+                conn.commit()
+                messagebox.showinfo("Success", f"Grade updated successfully for student {student_id}!")
+                grade_win.destroy()
+
+            # Create a button to save the grade
+            save_button = tk.Button(grade_win, text="Save Grade", command=save_grade)
+            save_button.pack()
+            
         #Widgets for assignment details
         course_id_label = tk.Label(assignments_win, text="Course ID:")
         course_id_label.pack()
@@ -1216,6 +1256,8 @@ def open_faculty_UI() -> None:
         delete_button = tk.Button(assignments_win, text="Delete Selected Assignment", command=lambda: delete_assignment(assignment_id))
         delete_button.pack()
 
+        grade_button = tk.Button(assignments_win, text="Grade Assignment", command= grade_assignment)
+        grade_button.pack()
 
     #Buttons for faculty UI functions
     add_materials_button = tk.Button(faculty_win, text="Add Course Materials", command=add_course_materials)
@@ -1493,48 +1535,65 @@ def UserLogin() -> None:
 ###
 
 # MAIN GUI
-createTables()
+
 ###
+def main():
+    main_win = tk.Tk()
+    main_win.title("User Login")
+    main_win.state("zoomed")
 
-main_win = tk.Tk()
-main_win.title("User Login")
-main_win.state("zoomed")
-
-username_label = tk.Label(main_win, text= "Username: ")
-username_label.grid(row= 1, column= 0, padx= 5, pady= 5)
-
-password_label = tk.Label(main_win, text= "Password: ")
-password_label.grid(row= 2, column= 0, padx= 5, pady= 5)
-
-role_label = tk.Label(main_win, text= "Role: ")
-role_label.grid(row= 3, column= 0, padx= 5, pady= 5)
-
-username_entry = tk.Entry(main_win)
-username_entry.grid(row= 1, column= 1, padx= 5, pady= 5)
-
-password_entry = tk.Entry(main_win, show="*")
-password_entry.grid(row= 2, column= 1, padx= 5, pady= 5)
-
-roles = ["Admin", "Student", "Faculty"]
-role_dd = ttk.Combobox(main_win, values=roles, state="readonly")
-role_dd.grid(row= 3, column= 1, padx= 5, pady= 5)
-
-username_label2 = tk.Label(main_win, text= "Username: ")
-username_label2.grid(row= 1, column= 2, padx= 5, pady= 5)
-
-password_label2 = tk.Label(main_win, text= "Password: ")
-password_label2.grid(row= 2, column= 2, padx= 5, pady= 5)
-
-username_entry2 = tk.Entry(main_win)
-username_entry2.grid(row= 1, column= 3, padx= 10, pady= 5)
-
-password_entry2 = tk.Entry(main_win, show="*")
-password_entry2.grid(row= 2, column= 3, padx= 5, pady= 5)
+    login_frame = tk.Frame(main_win, bd=2, relief=tk.GROOVE)
+    login_frame.grid(row= 0, column= 1, padx= 2, pady= 2, sticky= "nsew")
+    login_title = tk.Label(login_frame, text= "Log In")
+    login_title.grid(row= 0, column= 1, columnspan= 2)
         
-register_button = tk.Button(main_win, text= "Register", command= registercredentials)
-register_button.grid(row= 4, column= 0, padx= 5, pady= 5)
-    
-login_button = tk.Button(main_win, text= "Login", command= UserLogin)
-login_button.grid(row= 3, column= 2, padx= 5, pady= 5)
+    register_frame = tk.Frame(main_win, bd=2, relief=tk.GROOVE)
+    register_frame.grid(row= 0, column= 0, padx= 2, pady= 2, sticky= "nsew")
+    register_title = tk.Label(register_frame, text= "Register")
+    register_title.grid(row= 0, column= 0, columnspan= 2)
 
-main_win.mainloop()
+    main_win.rowconfigure(0, weight=1)
+    main_win.columnconfigure(0, weight=1)
+    main_win.columnconfigure(1, weight=1)
+
+    username_label = tk.Label(register_frame, text= "Username: ")
+    username_label.grid(row= 1, column= 0, padx= 5, pady= 5)
+
+    password_label = tk.Label(register_frame, text= "Password: ")
+    password_label.grid(row= 2, column= 0, padx= 5, pady= 5)
+
+    role_label = tk.Label(register_frame, text= "Role: ")
+    role_label.grid(row= 3, column= 0, padx= 5, pady= 5)
+
+    username_entry = tk.Entry(register_frame)
+    username_entry.grid(row= 1, column= 1, padx= 5, pady= 5)
+
+    password_entry = tk.Entry(register_frame, show="*")
+    password_entry.grid(row= 2, column= 1, padx= 5, pady= 5)
+
+    roles = ["Admin", "Student", "Faculty"]
+    role_dd = ttk.Combobox(register_frame, values=roles, state="readonly")
+    role_dd.grid(row= 3, column= 1, padx= 5, pady= 5)
+
+    username_label2 = tk.Label(login_frame, text= "Username: ")
+    username_label2.grid(row= 1, column= 2, padx= 5, pady= 5)
+
+    password_label2 = tk.Label(login_frame, text= "Password: ")
+    password_label2.grid(row= 2, column= 2, padx= 5, pady= 5)
+
+    username_entry2 = tk.Entry(login_frame)
+    username_entry2.grid(row= 1, column= 3, padx= 10, pady= 5)
+
+    password_entry2 = tk.Entry(login_frame, show="*")
+    password_entry2.grid(row= 2, column= 3, padx= 5, pady= 5)
+            
+    register_button = tk.Button(register_frame, text= "Register", command= registercredentials)
+    register_button.grid(row= 4, column= 0, padx= 5, pady= 5)
+        
+    login_button = tk.Button(login_frame, text= "Login", command= UserLogin)
+    login_button.grid(row= 3, column= 2, padx= 5, pady= 5)
+
+    main_win.mainloop()
+if __name__ == "__main__":
+    createTables()
+    main()
