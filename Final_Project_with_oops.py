@@ -42,6 +42,7 @@ class CollegeDatabase:
             #Execute thr SQL query using the connection. Automatically manage transaction commit/rollback
             with self.conn:
                 self.curs.execute(query, params)
+                self.conn.commit()
 
 
     def fetch_query(self, query: str, params: tuple = ()) -> list[tuple]:
@@ -49,6 +50,13 @@ class CollegeDatabase:
         with self.lock:
             self.curs.execute(query,params)
             return self.curs.fetchall()
+
+    #to fetch only one value instead of all
+    def fetch_query_one_val(self, query: str, params: tuple = ()) -> list[tuple]:
+        #fetch results from a SQL query with optional parameters.
+        with self.lock:
+            self.curs.execute(query,params)
+            return self.curs.fetchone()
 
 
     def create_tables(self):
@@ -135,14 +143,12 @@ class FacultyUI:
     def __init__(self):
         self.faculty_win = tk.Toplevel()
         self.faculty_win.title("Faculty Dashboard")
-        self.conn = sqlite3.connect('Users.db')
-        self.curs = self.conn.cursor()
-        self.curs.execute('''CREATE TABLE IF NOT EXISTS CourseMaterials (
+        self.college_db = CollegeDatabase('Users.db')
+        self.college_db.execute_query('''CREATE TABLE IF NOT EXISTS CourseMaterials (
                             id INTEGER PRIMARY KEY,
                             file_name TEXT,
                             file_path TEXT
                             )''')
-        self.conn.commit()
 
         self.create_buttons()
 
@@ -183,8 +189,7 @@ class FacultyUI:
             def save_file_name() -> None:
                 file_name = name_entry.get()
                 if file_name:
-                    self.curs.execute('INSERT INTO CourseMaterials (file_name, file_path) VALUES (?, ?)', (file_name, file_path))
-                    self.conn.commit()
+                    self.college_db.execute_query('INSERT INTO CourseMaterials (file_name, file_path) VALUES (?, ?)', (file_name, file_path))
                     messagebox.showinfo("Success", "Material added successfully!")
                     name_window.destroy()
                 else:
@@ -201,8 +206,7 @@ class FacultyUI:
     #Contract: -> None
     #Purpose: To display a list of course materials and allow opening them
     def view_course_materials(self) -> None:
-        self.curs.execute('SELECT file_name, file_path FROM CourseMaterials')
-        materials = self.curs.fetchall()
+        materials = self.college_db.fetch_query('SELECT file_name, file_path FROM CourseMaterials')
 
         materials_win = tk.Toplevel()
         materials_win.title("Course Materials")
@@ -241,13 +245,12 @@ class FacultyUI:
         #Contract: -> None
         #Purpose: To delete the selected material from the database
         def delete_selected_material(material_id):
-            self.curs.execute('DELETE FROM CourseMaterials WHERE id = ?', (material_id,))
-            self.conn.commit()
+            self.college_db.execute_query('DELETE FROM CourseMaterials WHERE id = ?', (material_id,))
+
             messagebox.showinfo("Success", "Material deleted successfully!")
             delete_materials_win.destroy()
 
-        self.curs.execute('SELECT id, file_name FROM CourseMaterials')
-        materials = self.curs.fetchall()
+        materials = self.college_db.fetch_query('SELECT id, file_name FROM CourseMaterials')
 
         selected_material_id = tk.IntVar()
 
@@ -263,8 +266,8 @@ class FacultyUI:
     #Contract: -> None
     #Purpose: To display student progress and grades
     def view_student_progress(self):
-        self.curs.execute('SELECT StudentID, CourseID, student_grade FROM Grades')
-        grades = self.curs.fetchall()
+
+        grades = self.college_db.fetch_query('SELECT StudentID, CourseID, student_grade FROM Grades')
 
         progress_win = tk.Toplevel(self.faculty_win)
         progress_win.title("Student Progress")
@@ -288,14 +291,13 @@ class FacultyUI:
             assignment_name = assignment_name_entry.get()
             submission_date = submission_date_entry.get()
 
-            self.curs.execute('SELECT StudentID FROM Students')
+            self.college_db.fetch_query('SELECT StudentID FROM Students')
             student_ids = self.curs.fetchall()
 
             for student_id_tuple in student_ids:
                 student_id = student_id_tuple[0]
-                self.curs.execute('INSERT INTO Assignments (CourseID, AssignmentName, SubmissionDate, Submitted, StudentID) VALUES (?, ?, ?, ?, ?)',
+                self.college_db.execute_query('INSERT INTO Assignments (CourseID, AssignmentName, SubmissionDate, Submitted, StudentID) VALUES (?, ?, ?, ?, ?)',
                              (course_id, assignment_name, submission_date, False, student_id))
-            self.conn.commit()
             messagebox.showinfo("Success", "Assignment added successfully!")
 
         #Contract: -> None
@@ -303,16 +305,14 @@ class FacultyUI:
         def update_assignment(assignment_id):
             updated_name = assignment_name_entry.get()
             updated_date = submission_date_entry.get()
-            self.curs.execute('UPDATE Assignments SET AssignmentName = ?, SubmissionDate = ? WHERE AssignmentID = ?',
+            self.college_db.execute_query('UPDATE Assignments SET AssignmentName = ?, SubmissionDate = ? WHERE AssignmentID = ?',
                          (updated_name, updated_date, assignment_id))
-            self.conn.commit()
             messagebox.showinfo("Success", "Assignment updated successfully!")
 
         #Contract: -> None
         #Purpose: To delete an existing assignment from the database
         def delete_assignment(assignment_id):
-            self.curs.execute('DELETE FROM Assignments WHERE AssignmentID = ?', (assignment_id,))
-            self.conn.commit()
+            self.college_db.execute_query('DELETE FROM Assignments WHERE AssignmentID = ?', (assignment_id,))
             messagebox.showinfo("Success", "Assignment deleted successfully!")
 
         #Contract: -> None
@@ -340,7 +340,7 @@ class FacultyUI:
                 course_id = course_id_entry.get()
                 student_id = student_id_entry.get()
                 grade = grade_entry.get()
-                self.curs.execute('UPDATE Grades SET student_grade = ? WHERE StudentID = ? AND CourseID = ?', (grade, student_id, course_id))
+                self.college_db.execute_query('UPDATE Grades SET student_grade = ? WHERE StudentID = ? AND CourseID = ?', (grade, student_id, course_id))
                 self.conn.commit()
                 messagebox.showinfo("Success", f"Grade updated successfully for student {student_id}!")
                 grade_win.destroy()
@@ -395,7 +395,7 @@ class StudentUI:
         self.student_win = tk.Tk()
         self.student_win.title("Welcome Student")
         self.student_win.state("zoomed")
-
+        self.college_db = CollegeDatabase('Users.db')
         self.create_widgets()
 
     #contract: self -> None
@@ -416,20 +416,16 @@ class StudentUI:
     #contract: self -> None
     #purpose: to add courses to a window
     def view_courses(self) -> None:
-        conn = sqlite3.connect('Users.db')
-        curs = conn.cursor()
 
         # Get the student's ID based on their username
-        curs.execute("SELECT UserID FROM Users WHERE Username = ?", (self.username,))
-        student_id = curs.fetchone()[0]
+        student_id = self.college_db.fetch_query("SELECT UserID FROM Users WHERE Username = ?", (self.username,))
 
         # Get the courses the student is enrolled in
-        curs.execute("SELECT Courses.CourseName, Courses.Schedule FROM Enrollment "
+        courses = self.college_db.fetch_query("SELECT Courses.CourseName, Courses.Schedule FROM Enrollment "
                      "INNER JOIN Courses ON Enrollment.CourseID = Courses.CourseID "
                      "WHERE Enrollment.StudentID = ?", (student_id,))
-        courses = curs.fetchall()
 
-        conn.close()
+        self.college_db.close_connection()
 
         # Display the courses in a new window
         courses_win = tk.Toplevel(self.student_win)
@@ -464,32 +460,23 @@ class StudentUI:
         #to save the change made to the course
         def save_changes() -> None:
 
-            conn = sqlite3.connect('Users.db')
-            curs = conn.cursor()
             # Get the student's ID based on their username
-            curs.execute("SELECT UserID FROM Users WHERE Username = ?", (self.username,))
-            studentID = curs.fetchone()[0]
+            studentID = self.college_db.fetch_query_one_val("SELECT UserID FROM Users WHERE Username = ?", (self.username,))[0]
 
             coursename = coursenameentry.get()
             courseschedule = coursescheduleentry.get()
 
-            conn = sqlite3.connect('Users.db')
-            curs = conn.cursor()
-
-            curs.execute("SELECT CourseID FROM Courses WHERE CourseName= ? and Schedule= ?",
+            courseID = self.college_db.fetch_query_one_val("SELECT CourseID FROM Courses WHERE CourseName= ? and Schedule= ?",
                          (coursename, courseschedule))
-            courseID = curs.fetchone()
             if courseID:
                 courseID = courseID[0]
-                curs.execute("INSERT INTO Enrollment(CourseID, StudentID) VALUES (?, ?)",
+                self.college_db.execute_query("INSERT INTO Enrollment(CourseID, StudentID) VALUES (?, ?)",
                              (courseID, studentID))
-                curs.execute("INSERT INTO Grades(CourseID, StudentID, student_grade) VALUES(?,?,?)",
+                self.college_db.execute_query("INSERT INTO Grades(CourseID, StudentID, student_grade) VALUES(?,?,?)",
                              (courseID, studentID, 100.0))
-                conn.commit()
+
                 messagebox.showinfo("Successful", "Added to Course!")
 
-                conn.close()
-                self.student_win.destroy()
             else:
                 messagebox.showerror("Failure", "Course does not exist")
 
@@ -499,18 +486,14 @@ class StudentUI:
     #contract: self -> None
     #purpose: allows a user to submit assignments and
     def submit_assignment(self) -> None:
-        conn = sqlite3.connect('Users.db')
-        curs = conn.cursor()
 
         # Get the student's ID based on their username
-        curs.execute("SELECT UserID FROM Users WHERE Username = ?", (self.username,))
-        student_id = curs.fetchone()[0]
+        student_id = self.college_db.fetch_query_one_val("SELECT UserID FROM Users WHERE Username = ?", (self.username,))[0]
 
         # Get the assignments for the student
-        curs.execute("SELECT AssignmentID, AssignmentName FROM Assignments WHERE StudentID = ?", (student_id,))
-        assignments = curs.fetchall()
+        assignments = self.college_db.fetch_query("SELECT AssignmentID, AssignmentName FROM Assignments WHERE StudentID = ?", (student_id,))
 
-        conn.close()
+        self.college_db.close_connection()
 
         #checks to see if there are assignments
         if not assignments:
@@ -530,8 +513,6 @@ class StudentUI:
         #contract: self -> None
         #purpose: to upload a file to the db
         def upload_file() -> None:
-            conn = sqlite3.connect('Users.db')
-            curs = conn.cursor()
 
             file_path = filedialog.askopenfilename()
             if file_path:
@@ -541,9 +522,8 @@ class StudentUI:
 
                 # Update the database with the file path
                 selected_assignment_id = assignment_var.get()
-                curs.execute("UPDATE Assignments SET Submitted = ?, FilePath = ? WHERE AssignmentID = ?",
+                self.college_db.execute_query("UPDATE Assignments SET Submitted = ?, FilePath = ? WHERE AssignmentID = ?",
                              (1, file_path, selected_assignment_id))
-                conn.commit()
                 messagebox.showinfo("Success", "File uploaded successfully!")
                 submit_win.destroy()
 
@@ -553,19 +533,16 @@ class StudentUI:
     #contract: self -> None
     #this allows students to view the grades that exist for the classes that a student is registered for
     def view_grades(self) -> None:
-        conn = sqlite3.connect('Users.db')
-        curs = conn.cursor()
 
         # Get the student's ID based on their username
-        curs.execute("SELECT UserID FROM Users WHERE Username = ?", (self.username,))
-        student_id = curs.fetchone()[0]
+        student_id = self.college_db.fetch_query_one_val("SELECT UserID FROM Users WHERE Username = ?", (self.username,))[0]
 
         # Get the grades for the student
-        curs.execute("SELECT CourseName, student_grade FROM Grades "
+        grades = self.college_db.fetch_query("SELECT CourseName, student_grade FROM Grades "
                      "INNER JOIN Courses ON Grades.CourseID = Courses.CourseID "
                      "WHERE StudentID = ?", (student_id,))
-        grades = curs.fetchall()
-        conn.close()
+
+        self.college_db.close_connection()
 
         grades_win = tk.Toplevel(self.student_win)
         grades_win.title("Grades")
