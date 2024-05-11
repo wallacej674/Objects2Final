@@ -583,6 +583,7 @@ class StudentUI:
 
 class UserAuthenticationSystem:
     def __init__(self):
+
         self.main_win = tk.Tk()
         self.main_win.title("User Login")
         self.main_win.state("zoomed")
